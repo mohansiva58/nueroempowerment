@@ -1,15 +1,17 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SpeechText } from '../components/speach';
-import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from './firebase';
 import { useAuth } from './AuthContext';
 import { Clock, Calendar, CheckCircle, PlayCircle, Search, X } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+import { FormattedMessage, useIntl } from 'react-intl';
+
 
 interface Course {
-  title: string;
-  description: string;
+  titleKey: string;
+  descriptionKey: string;
   status: "Completed" | "Upcoming" | "Watching";
   duration: string;
   progress?: string;
@@ -18,67 +20,66 @@ interface Course {
 
 interface Event {
   type: "Webinar" | "Lesson" | "Task";
-  title: string;
-  description: string;
+  titleKey: string;
+  descriptionKey?: string;
   date: string;
   time?: string;
 }
 
 interface Resource {
-  title: string;
+  titleKey: string;
   type: "Article" | "Video" | "Tip";
   link?: string;
-  description: string;
+  descriptionKey: string;
 }
 
 const learningPlan: Course[] = [
-  { title: "ADHD Fundamentals", description: "Explore the basics of ADHD and strategies for managing attention and focus.", status: "Completed", duration: "00:45", category: "Cognitive" },
-  { title: "Time Management for ADHD", description: "Learn practical techniques to organize tasks and manage time effectively with ADHD.", status: "Watching", duration: "00:40", progress: "00:20", category: "Cognitive" },
-  { title: "ADHD and Emotional Regulation", description: "Understand emotional challenges with ADHD and develop coping skills.", status: "Upcoming", duration: "00:35", category: "Mental Health" },
-  { title: "Dyslexia Reading Strategies", description: "Master techniques to improve reading fluency and comprehension.", status: "Completed", duration: "00:50", category: "Reading" },
-  { title: "Autism and Social Communication", description: "Build skills for effective social interaction and understanding cues.", status: "Upcoming", duration: "00:30", category: "Social" },
-  { title: "Motor Skills Development", description: "Enhance coordination and fine motor skills through targeted exercises.", status: "Watching", duration: "00:25", progress: "00:15", category: "Motor Skills" },
-  { title: "Understanding Dyscalculia", description: "Learn about math-related challenges and strategies to overcome them.", status: "Upcoming", duration: "00:40", category: "Mathematics" },
-  { title: "OCD Coping Mechanisms", description: "Develop tools to manage obsessive-compulsive behaviors effectively.", status: "Completed", duration: "00:35", category: "Psychological" },
-  { title: "Bipolar Disorder Basics", description: "Gain insights into bipolar disorder and mood management techniques.", status: "Upcoming", duration: "00:45", category: "Mental Health" },
-  { title: "Sensory Processing Skills", description: "Explore sensory sensitivities and ways to adapt daily routines.", status: "Watching", duration: "00:30", progress: "00:10", category: "Perception" },
-  { title: "Down Syndrome Learning Strategies", description: "Discover tailored approaches to support learning with Down Syndrome.", status: "Upcoming", duration: "00:50", category: "Genetic" },
-  { title: "Anatomy and Physiology", description: "Understand the structure and function of the human body.", status: "Completed", duration: "00:30", category: "Reading" },
-  { title: "Pharmacology Basics", description: "Learn basic medical language for effective communication.", status: "Watching", duration: "00:30", progress: "00:30", category: "Social" },
-  { title: "Medical Ethics and Professionalism", description: "Understand ethical principles and professionalism in healthcare.", status: "Upcoming", duration: "00:30", category: "Neurological" },
-  { title: "Disease Pathophysiology", description: "Study the cellular and molecular basis of common diseases.", status: "Upcoming", duration: "00:30", category: "Motor Skills" },
+  { titleKey: "learning.course.adhd_fundamentals", descriptionKey: "learning.desc.adhd_fundamentals", status: "Completed", duration: "00:45", category: "Cognitive" },
+  { titleKey: "learning.course.time_management_adhd", descriptionKey: "learning.desc.time_management_adhd", status: "Watching", duration: "00:40", progress: "00:20", category: "Cognitive" },
+  { titleKey: "learning.course.adhd_emotional_regulation", descriptionKey: "learning.desc.adhd_emotional_regulation", status: "Upcoming", duration: "00:35", category: "Mental Health" },
+  { titleKey: "learning.course.dyslexia_reading_strategies", descriptionKey: "learning.desc.dyslexia_reading_strategies", status: "Completed", duration: "00:50", category: "Reading" },
+  { titleKey: "learning.course.autism_social_communication", descriptionKey: "learning.desc.autism_social_communication", status: "Upcoming", duration: "00:30", category: "Social" },
+  { titleKey: "learning.course.motor_skills_development", descriptionKey: "learning.desc.motor_skills_development", status: "Watching", duration: "00:25", progress: "00:15", category: "Motor Skills" },
+  { titleKey: "learning.course.understanding_dyscalculia", descriptionKey: "learning.desc.understanding_dyscalculia", status: "Upcoming", duration: "00:40", category: "Mathematics" },
+  { titleKey: "learning.course.ocd_coping_mechanisms", descriptionKey: "learning.desc.ocd_coping_mechanisms", status: "Completed", duration: "00:35", category: "Psychological" },
+  { titleKey: "learning.course.bipolar_disorder_basics", descriptionKey: "learning.desc.bipolar_disorder_basics", status: "Upcoming", duration: "00:45", category: "Mental Health" },
+  { titleKey: "learning.course.sensory_processing_skills", descriptionKey: "learning.desc.sensory_processing_skills", status: "Watching", duration: "00:30", progress: "00:10", category: "Perception" },
+  { titleKey: "learning.course.down_syndrome_learning", descriptionKey: "learning.desc.down_syndrome_learning", status: "Upcoming", duration: "00:50", category: "Genetic" },
+  { titleKey: "learning.course.anatomy_physiology", descriptionKey: "learning.desc.anatomy_physiology", status: "Completed", duration: "00:30", category: "Reading" },
+  { titleKey: "learning.course.pharmacology_basics", descriptionKey: "learning.desc.pharmacology_basics", status: "Watching", duration: "00:30", progress: "00:30", category: "Social" },
+  { titleKey: "learning.course.medical_ethics", descriptionKey: "learning.desc.medical_ethics", status: "Upcoming", duration: "00:30", category: "Neurological" },
+  { titleKey: "learning.course.disease_pathophysiology", descriptionKey: "learning.desc.disease_pathophysiology", status: "Upcoming", duration: "00:30", category: "Motor Skills" },
 ];
 
 const events: Event[] = [
-  { type: "Webinar", title: "Understanding medical research, critical appraisal skills, and applying evidence-based guidelines in practice", description: "", date: "Tu, 25.03", time: "12:30" },
-  { type: "Lesson", title: "Overview of healthcare delivery systems, health policy, and their impact on patient care.", description: "", date: "We, 26.03" },
-  { type: "Task", title: "Examination of major global health issues, including infectious diseases, non-communicable diseases, and healthcare disparities.", description: "", date: "Th, 27.03" },
-  { type: "Task", title: "Importance of teamwork and communication among healthcare professionals for optimal patient outcomes.", description: "", date: "Fr, 28.03" },
+  { type: "Webinar", titleKey: "learning.event.medical_research", descriptionKey: "", date: "Tu, 25.03", time: "12:30" },
+  { type: "Lesson", titleKey: "learning.event.healthcare_systems", descriptionKey: "", date: "We, 26.03" },
+  { type: "Task", titleKey: "learning.event.global_health", descriptionKey: "", date: "Th, 27.03" },
+  { type: "Task", titleKey: "learning.event.teamwork_communication", descriptionKey: "", date: "Fr, 28.03" },
 ];
 
-const categoryContent: Record<string, { description: string; resources: Resource[] }> = {
+const categoryContent: Record<string, { descriptionKey: string; resources: Resource[] }> = {
   "All": {
-    description: "Explore a wide range of neurodiversity topics covering cognitive, social, motor skills, and more, designed to empower learners with diverse needs.",
+    descriptionKey: "learning.category_desc.all",
     resources: [
-      { title: "What is Neurodiversity?", type: "Article", link: "https://www.neurodiversityhub.org/what-is-neurodiversity", description: "An overview of neurodiversity and its importance in education and society." },
-      { title: "Neurodiversity Explained", type: "Video", link: "https://www.youtube.com/watch?v=jKB2ulrHh0s", description: "A concise video breaking down the concept of neurodiversity." },
-      { title: "Inclusive Learning Tip", type: "Tip", description: "Adapt lessons to individual strengths for better engagement and understanding." },
+      { titleKey: "learning.resource1.title", type: "Article", link: "https://www.neurodiversityhub.org/what-is-neurodiversity", descriptionKey: "learning.resource1.desc" },
+      { titleKey: "learning.resource2.title", type: "Video", link: "https://www.youtube.com/watch?v=jKB2ulrHh0s", descriptionKey: "learning.resource2.desc" },
+      { titleKey: "learning.resource6.title", type: "Tip", descriptionKey: "learning.resource6.desc" },
     ],
   },
   "Cognitive": {
-    description: "Learn about cognitive conditions like ADHD that affect attention, focus, and executive functioning, with strategies to enhance cognitive skills.",
+    descriptionKey: "learning.category_desc.cognitive",
     resources: [
-      { title: "ADHD Coping Strategies", type: "Article", link: "https://www.additudemag.com/adhd-coping-skills/", description: "Practical tips for managing ADHD symptoms in daily life." },
-      { title: "ADHD Basics", type: "Video", link: "https://www.youtube.com/watch?v=hFL6qRIJZ_Y", description: "Understand the fundamentals of ADHD and its impact on learning." },
-      { title: "Focus Techniques", type: "Tip", description: "Use timers and breaks to maintain concentration during tasks." },
+      { titleKey: "learning.resource3.title", type: "Article", link: "https://www.additudemag.com/adhd-coping-skills/", descriptionKey: "learning.resource3.desc" },
+      { titleKey: "learning.resource4.title", type: "Video", link: "https://www.youtube.com/watch?v=hFL6qRIJZ_Y", descriptionKey: "learning.resource4.desc" },
+      { titleKey: "learning.resource5.title", type: "Tip", descriptionKey: "learning.resource5.desc" },
     ],
   },
-  // ... (other categories remain the same)
 };
 
 const Learning: React.FC = () => {
+  const intl = useIntl();
   const { user } = useAuth();
-  const db = getFirestore();
   const location = useLocation();
   const [completion, setCompletion] = useState<{ [key: string]: number }>({});
   const [enrolledCourses, setEnrolledCourses] = useState<Set<string>>(new Set());
@@ -114,10 +115,10 @@ const Learning: React.FC = () => {
 
           if (finalPredictedCategory !== "All") {
             const recommendedCourse = learningPlan.find(course => course.category === finalPredictedCategory);
-            if (recommendedCourse && !enrolledFromFirebase.includes(recommendedCourse.title)) {
-              const newEnrolled = new Set([...enrolledFromFirebase, recommendedCourse.title]);
+            if (recommendedCourse && !enrolledFromFirebase.includes(recommendedCourse.titleKey)) {
+              const newEnrolled = new Set([...enrolledFromFirebase, recommendedCourse.titleKey]);
               setEnrolledCourses(newEnrolled);
-              const newCompletion = { ...completionFromFirebase, [recommendedCourse.title]: 0 };
+              const newCompletion = { ...completionFromFirebase, [recommendedCourse.titleKey]: 0 };
               setCompletion(newCompletion);
               await setDoc(userDocRef, { enrolled: Array.from(newEnrolled), completion: newCompletion }, { merge: true });
             }
@@ -134,7 +135,7 @@ const Learning: React.FC = () => {
     };
 
     fetchUserData();
-  }, [user, db, location.state]);
+  }, [user, location.state]);
 
   const updateUserData = async (newEnrolled: Set<string>, newCompletion: { [key: string]: number }) => {
     if (user) {
@@ -147,16 +148,16 @@ const Learning: React.FC = () => {
     }
   };
 
-  const handleEnroll = async (courseTitle: string) => {
+  const handleEnroll = async (courseTitleKey: string) => {
     const newEnrolled = new Set(enrolledCourses);
     const newCompletion = { ...completion };
 
-    if (newEnrolled.has(courseTitle)) {
-      newEnrolled.delete(courseTitle);
-      delete newCompletion[courseTitle];
+    if (newEnrolled.has(courseTitleKey)) {
+      newEnrolled.delete(courseTitleKey);
+      delete newCompletion[courseTitleKey];
     } else {
-      newEnrolled.add(courseTitle);
-      newCompletion[courseTitle] = 0;
+      newEnrolled.add(courseTitleKey);
+      newCompletion[courseTitleKey] = 0;
     }
 
     setEnrolledCourses(newEnrolled);
@@ -183,10 +184,13 @@ const Learning: React.FC = () => {
     setVideoUrl(null);
   };
 
-  const filteredCourses = learningPlan.filter(course =>
-    (selectedCategory === "All" || course.category === selectedCategory) &&
-    course.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredCourses = learningPlan.filter(course => {
+    const titleText = intl.formatMessage({ id: course.titleKey, defaultMessage: '' });
+    const descriptionText = intl.formatMessage({ id: course.descriptionKey, defaultMessage: '' });
+    return (selectedCategory === "All" || course.category === selectedCategory) &&
+      (titleText.toLowerCase().includes(searchQuery.toLowerCase()) ||
+       descriptionText.toLowerCase().includes(searchQuery.toLowerCase()));
+  });
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -235,7 +239,9 @@ const Learning: React.FC = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <SpeechText>Loading...</SpeechText>
+        <SpeechText>
+          <FormattedMessage id="learning.loading" defaultMessage="Loading..." />
+        </SpeechText>
       </div>
     );
   }
@@ -249,7 +255,10 @@ const Learning: React.FC = () => {
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="Search courses..."
+                  placeholder={intl.formatMessage({ 
+                    id: 'learning.search_placeholder', 
+                    defaultMessage: 'Search courses...' 
+                  })}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-700"
@@ -260,18 +269,20 @@ const Learning: React.FC = () => {
 
             <motion.div className="flex justify-between items-center mb-6" variants={cardVariants}>
               <h2 className="text-2xl font-semibold text-gray-800 flex items-center">
-                <SpeechText>My Learning Plan</SpeechText>
+                <SpeechText>
+                  <FormattedMessage id="learning.my_learning_plan" defaultMessage="My Learning Plan" />
+                </SpeechText>
                 <Clock className="h-5 w-5 ml-2 text-gray-500" />
               </h2>
               <div className="flex space-x-4">
                 <motion.div className="bg-green-100 text-green-800 px-4 py-2 rounded-lg" whileHover={{ scale: 1.05 }} transition={{ duration: 0.3 }}>
-                  <span className="font-bold">{filteredCourses.length}</span> Total
+                  <span className="font-bold">{filteredCourses.length}</span> <FormattedMessage id="learning.total" defaultMessage="Total" />
                 </motion.div>
                 <motion.div className="bg-yellow-100 text-yellow-800 px-4 py-2 rounded-lg" whileHover={{ scale: 1.05 }} transition={{ duration: 0.3 }}>
-                  <span className="font-bold">{filteredCourses.filter(c => c.status === "Completed").length}</span> Completed
+                  <span className="font-bold">{filteredCourses.filter(c => c.status === "Completed").length}</span> <FormattedMessage id="learning.completed" defaultMessage="Completed" />
                 </motion.div>
                 <motion.div className="bg-purple-100 text-purple-800 px-4 py-2 rounded-lg" whileHover={{ scale: 1.05 }} transition={{ duration: 0.3 }}>
-                  <span className="font-bold">{filteredCourses.filter(c => c.status === "Upcoming").length}</span> Upcoming
+                  <span className="font-bold">{filteredCourses.filter(c => c.status === "Upcoming").length}</span> <FormattedMessage id="learning.upcoming" defaultMessage="Upcoming" />
                 </motion.div>
               </div>
             </motion.div>
@@ -301,38 +312,66 @@ const Learning: React.FC = () => {
                       </motion.div>
                       <div className="flex-1">
                         <h3 className="text-lg font-semibold text-gray-800">
-                          <SpeechText>{course.title}</SpeechText>
+                          <SpeechText>
+                            <FormattedMessage id={course.titleKey} defaultMessage={course.titleKey} />
+                          </SpeechText>
                         </h3>
                         <p className="text-gray-600 text-sm">
-                          <SpeechText>{course.description}</SpeechText>
+                          <SpeechText>
+                            <FormattedMessage id={course.descriptionKey} defaultMessage={course.descriptionKey} />
+                          </SpeechText>
                         </p>
                         <div className="flex items-center space-x-2 mt-2">
                           <span className="text-gray-500 text-sm">
-                            <SpeechText>{course.status}</SpeechText>
+                            <SpeechText>
+                              {course.status === "Completed" && <FormattedMessage id="learning.completed" defaultMessage="Completed" />}
+                              {course.status === "Upcoming" && <FormattedMessage id="learning.upcoming" defaultMessage="Upcoming" />}
+                              {course.status === "Watching" && <FormattedMessage id="learning.watching" defaultMessage="Watching" />}
+                            </SpeechText>
                           </span>
                           {course.status === "Watching" && (
                             <span className="text-gray-500 text-sm">
-                              <SpeechText>Watching {course.progress}</SpeechText>
+                              <SpeechText>
+                                <FormattedMessage 
+                                  id="learning.watching_progress" 
+                                  defaultMessage="Watching {progress}"
+                                  values={{ progress: course.progress }}
+                                />
+                              </SpeechText>
                             </span>
                           )}
                         </div>
                       </div>
                       <motion.button
-                        onClick={() => handleEnroll(course.title)}
+                        onClick={() => handleEnroll(course.titleKey)}
                         variants={buttonVariants}
                         whileHover="hover"
                         whileTap="tap"
-                        className={`px-4 py-2 rounded-lg text-white font-medium transition-all duration-200 ${enrolledCourses.has(course.title) ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}`}
+                        className={`px-4 py-2 rounded-lg text-white font-medium transition-all duration-200 ${enrolledCourses.has(course.titleKey) ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}`}
                       >
-                        <SpeechText>{enrolledCourses.has(course.title) ? "Unenroll" : "Enroll Now"}</SpeechText>
+                        <SpeechText>
+                          {enrolledCourses.has(course.titleKey) ? (
+                            <FormattedMessage id="common.unenroll" defaultMessage="Unenroll" />
+                          ) : (
+                            <FormattedMessage id="common.enroll_now" defaultMessage="Enroll Now" />
+                          )}
+                        </SpeechText>
                       </motion.button>
                     </motion.div>
 
                     <AnimatePresence>
-                      {enrolledCourses.has(course.title) && (
+                      {enrolledCourses.has(course.titleKey) && (
                         <motion.div variants={relatedContentVariants} initial="hidden" animate="visible" exit="exit" className="mt-4 ml-16">
                           <h4 className="text-lg font-semibold text-gray-800 mb-2">
-                            <SpeechText>Related Content for {course.title}</SpeechText>
+                            <SpeechText>
+                              <FormattedMessage 
+                                id="learning.related_content" 
+                                defaultMessage="Related Content for {courseTitle}"
+                                values={{ 
+                                  courseTitle: intl.formatMessage({ id: course.titleKey, defaultMessage: course.titleKey })
+                                }}
+                              />
+                            </SpeechText>
                           </h4>
                           <div className="space-y-4">
                             {categoryContent[course.category]?.resources.map((resource, resIndex) => (
@@ -348,10 +387,14 @@ const Learning: React.FC = () => {
                                   </span>
                                 </div>
                                 <h5 className="text-md font-semibold text-gray-800">
-                                  <SpeechText>{resource.title}</SpeechText>
+                                  <SpeechText>
+                                    <FormattedMessage id={resource.titleKey} defaultMessage={resource.titleKey} />
+                                  </SpeechText>
                                 </h5>
                                 <p className="text-gray-600 text-sm mt-1">
-                                  <SpeechText>{resource.description}</SpeechText>
+                                  <SpeechText>
+                                    <FormattedMessage id={resource.descriptionKey} defaultMessage={resource.descriptionKey} />
+                                  </SpeechText>
                                 </p>
                                 {resource.link && (
                                   resource.type === "Video" ? (
@@ -362,7 +405,9 @@ const Learning: React.FC = () => {
                                       whileTap="tap"
                                       className="mt-2 inline-block px-4 py-1 bg-blue-600 text-white rounded-lg text-sm"
                                     >
-                                      <SpeechText>Watch Video</SpeechText>
+                                      <SpeechText>
+                                        <FormattedMessage id="learning.watch_video" defaultMessage="Watch Video" />
+                                      </SpeechText>
                                     </motion.button>
                                   ) : (
                                     <motion.a
@@ -374,7 +419,12 @@ const Learning: React.FC = () => {
                                       whileTap="tap"
                                       className="mt-2 inline-block px-4 py-1 bg-blue-600 text-white rounded-lg text-sm"
                                     >
-                                      <SpeechText>Learn More</SpeechText>
+                                      <SpeechText>
+                                        <FormattedMessage 
+                                          id="home.learn_more" 
+                                          defaultMessage="Learn More" 
+                                        />
+                                      </SpeechText>
                                     </motion.a>
                                   )
                                 )}
@@ -388,7 +438,12 @@ const Learning: React.FC = () => {
                 ))
               ) : (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="text-center text-gray-600">
-                  <SpeechText>No courses found matching your search or category.</SpeechText>
+                  <SpeechText>
+                    <FormattedMessage 
+                      id="learning.no_courses" 
+                      defaultMessage="No courses found matching your search or category." 
+                    />
+                  </SpeechText>
                 </motion.div>
               )}
             </div>
@@ -397,8 +452,10 @@ const Learning: React.FC = () => {
           <div className="lg:col-span-1">
             <motion.div variants={containerVariants} initial="hidden" animate="visible">
               <motion.h2 variants={cardVariants} className="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
-                <SpeechText>My Events</SpeechText>
-                <span className="ml-2">🎉</span>
+                <SpeechText>
+                  <FormattedMessage id="learning.my_events" defaultMessage="My Events" />
+                </SpeechText>
+                <span className="ml-2">ðŸŽ‰</span>
               </motion.h2>
               <div className="space-y-4">
                 <AnimatePresence>
@@ -414,23 +471,36 @@ const Learning: React.FC = () => {
                     >
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-sm font-semibold text-gray-700">
-                          <SpeechText>{event.type}</SpeechText>
+                          <SpeechText>
+                            {event.type === "Webinar" && <FormattedMessage id="learning.event_type.webinar" defaultMessage="Webinar" />}
+                            {event.type === "Lesson" && <FormattedMessage id="learning.event_type.lesson" defaultMessage="Lesson" />}
+                            {event.type === "Task" && <FormattedMessage id="learning.event_type.task" defaultMessage="Task" />}
+                          </SpeechText>
                         </span>
                         <span className="text-sm text-gray-600">
                           <SpeechText>{event.date}</SpeechText>
                         </span>
                       </div>
                       <h3 className="text-lg font-semibold text-gray-800">
-                        <SpeechText>{event.title}</SpeechText>
+                        <SpeechText>
+                          <FormattedMessage id={event.titleKey} defaultMessage={event.titleKey} />
+                        </SpeechText>
                       </h3>
-                      {event.description && (
+                      {event.descriptionKey && (
                         <p className="text-gray-600 text-sm mt-1">
-                          <SpeechText>{event.description}</SpeechText>
+                          <SpeechText>
+                            <FormattedMessage id={event.descriptionKey} defaultMessage={event.descriptionKey} />
+                          </SpeechText>
                         </p>
                       )}
                       {event.time && (
                         <motion.button variants={buttonVariants} whileHover="hover" whileTap="tap" className="mt-2 px-4 py-1 bg-gray-200 text-gray-800 rounded-lg text-sm">
-                          <SpeechText>Start at {event.time}</SpeechText>
+                          <SpeechText>
+                            <FormattedMessage 
+                              id="learning.start_at" 
+                              defaultMessage="Start at" 
+                            /> {event.time}
+                          </SpeechText>
                         </motion.button>
                       )}
                     </motion.div>
@@ -439,8 +509,10 @@ const Learning: React.FC = () => {
               </div>
 
               <motion.h2 variants={cardVariants} className="text-2xl font-semibold text-gray-800 mt-8 mb-6 flex items-center">
-                <SpeechText>Resources</SpeechText>
-                <span className="ml-2">📚</span>
+                <SpeechText>
+                  <FormattedMessage id="learning.resources" defaultMessage="Resources" />
+                </SpeechText>
+                <span className="ml-2">ðŸ“š</span>
               </motion.h2>
               <div className="space-y-4">
                 <AnimatePresence>
@@ -456,14 +528,22 @@ const Learning: React.FC = () => {
                     >
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-sm font-semibold text-gray-700">
-                          <SpeechText>{resource.type}</SpeechText>
+                          <SpeechText>
+                            {resource.type === "Article" && <FormattedMessage id="learning.resource_type.article" defaultMessage="Article" />}
+                            {resource.type === "Video" && <FormattedMessage id="learning.resource_type.video" defaultMessage="Video" />}
+                            {resource.type === "Tip" && <FormattedMessage id="learning.resource_type.tip" defaultMessage="Tip" />}
+                          </SpeechText>
                         </span>
                       </div>
                       <h3 className="text-lg font-semibold text-gray-800">
-                        <SpeechText>{resource.title}</SpeechText>
+                        <SpeechText>
+                          <FormattedMessage id={resource.titleKey} defaultMessage={resource.titleKey} />
+                        </SpeechText>
                       </h3>
                       <p className="text-gray-600 text-sm mt-1">
-                        <SpeechText>{resource.description}</SpeechText>
+                        <SpeechText>
+                          <FormattedMessage id={resource.descriptionKey} defaultMessage={resource.descriptionKey} />
+                        </SpeechText>
                       </p>
                       {resource.link && (
                         resource.type === "Video" ? (
@@ -474,7 +554,9 @@ const Learning: React.FC = () => {
                             whileTap="tap"
                             className="mt-2 inline-block px-4 py-1 bg-blue-600 text-white rounded-lg text-sm"
                           >
-                            <SpeechText>Watch Video</SpeechText>
+                            <SpeechText>
+                              <FormattedMessage id="learning.watch_video" defaultMessage="Watch Video" />
+                            </SpeechText>
                           </motion.button>
                         ) : (
                           <motion.a
@@ -486,7 +568,9 @@ const Learning: React.FC = () => {
                             whileTap="tap"
                             className="mt-2 inline-block px-4 py-1 bg-blue-600 text-white rounded-lg text-sm"
                           >
-                            <SpeechText>Learn More</SpeechText>
+                            <SpeechText>
+                              <FormattedMessage id="home.learn_more" defaultMessage="Learn More" />
+                            </SpeechText>
                           </motion.a>
                         )
                       )}

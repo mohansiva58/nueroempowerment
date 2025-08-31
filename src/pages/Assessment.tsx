@@ -1,28 +1,31 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+﻿/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState } from 'react';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { getFirestore, doc, setDoc } from 'firebase/firestore';
-import { useAuth } from './AuthContext'; // Ensure this context exists
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from './firebase';
+import { useAuth } from './AuthContext';
+import { FormattedMessage, useIntl } from 'react-intl';
+
 
 const dummyPicture = 'https://i0.wp.com/explainingbrains.com/wp-content/uploads/2024/08/Neurodiversity-Affirming-Assessment-workshop-1.png?resize=1080%2C1080&ssl=1';
 
 interface Question {
   id: number;
-  text: string;
+  textKey: string;
 }
 
 const questions: Question[] = [
-  { id: 1, text: "Do you often find it hard to focus on tasks for long periods?" },
-  { id: 2, text: "Do you prefer routines and get upset when they change?" },
-  { id: 3, text: "Do you struggle with reading or mix up letters/words?" },
-  { id: 4, text: "Do you frequently lose track of time or forget appointments?" },
-  { id: 5, text: "Do you find social situations overwhelming or hard to navigate?" },
-  { id: 6, text: "Do you have difficulty following spoken instructions?" },
-  { id: 7, text: "Are you easily distracted by noises or movements around you?" },
-  { id: 8, text: "Do you have intense interests in specific topics?" },
-  { id: 9, text: "Do you often reverse numbers or struggle with spelling?" },
-  { id: 10, text: "Do you feel restless or fidget a lot when sitting still?" },
+  { id: 1, textKey: "assessment.question_1" },
+  { id: 2, textKey: "assessment.question_2" },
+  { id: 3, textKey: "assessment.question_3" },
+  { id: 4, textKey: "assessment.question_4" },
+  { id: 5, textKey: "assessment.question_5" },
+  { id: 6, textKey: "assessment.question_6" },
+  { id: 7, textKey: "assessment.question_7" },
+  { id: 8, textKey: "assessment.question_8" },
+  { id: 9, textKey: "assessment.question_9" },
+  { id: 10, textKey: "assessment.question_10" },
 ];
 
 const predictNeurodiversity = (answers: Record<string, number>) => {
@@ -63,6 +66,7 @@ const predictNeurodiversity = (answers: Record<string, number>) => {
 };
 
 const Assessment: React.FC = () => {
+  const intl = useIntl();
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
   const [prediction, setPrediction] = useState<{ prediction: string; probabilities: Record<string, number> } | null>(null);
@@ -70,7 +74,6 @@ const Assessment: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
-  const db = getFirestore();
 
   const handleAnswerChange = (questionId: number, value: number) => {
     setAnswers((prev) => ({
@@ -99,12 +102,12 @@ const Assessment: React.FC = () => {
     setTimeout(() => {
       try {
         if (Object.keys(answers).length !== questions.length) {
-          throw new Error('Please answer all questions');
+          throw new Error(intl.formatMessage({ id: 'assessment.please_answer_all', defaultMessage: 'Please answer all questions' }));
         }
         const result = predictNeurodiversity(answers);
         setPrediction(result);
       } catch (err) {
-        setError((err as Error).message || 'Prediction failed');
+        setError((err as Error).message || intl.formatMessage({ id: 'assessment.prediction_failed', defaultMessage: 'Prediction failed' }));
       } finally {
         setLoading(false);
       }
@@ -143,8 +146,8 @@ const Assessment: React.FC = () => {
   };
 
   const yesNoOptions = [
-    { label: 'Yes', value: 1 },
-    { label: 'No', value: 0 },
+    { labelKey: 'assessment.option.yes', value: 1 },
+    { labelKey: 'assessment.option.no', value: 0 },
   ];
 
   const scrollVariants = {
@@ -169,7 +172,7 @@ const Assessment: React.FC = () => {
             transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
             className="text-2xl sm:text-3xl lg:text-4xl font-bold text-indigo-800 mb-4 sm:mb-9 text-center"
           >
-            About This Assessment
+            <FormattedMessage id="assessment.about_title" defaultMessage="About This Assessment" />
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -177,7 +180,7 @@ const Assessment: React.FC = () => {
             transition={{ duration: 0.6, delay: 0.3, ease: 'easeOut' }}
             className="text-sm sm:text-base text-gray-700 mb-4 sm:mb-6 leading-relaxed text-center max-w-md"
           >
-            This Neurodiversity Assessment identifies traits of conditions like ADHD, Dyslexia, or Autism through simple yes/no questions. It’s a user-friendly starting point for understanding your cognitive profile.
+            <FormattedMessage id="assessment.description" defaultMessage="This Neurodiversity Assessment identifies traits of conditions like ADHD, Dyslexia, or Autism through simple yes/no questions. It's a user-friendly starting point for understanding your cognitive profile." />
           </motion.p>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -185,11 +188,11 @@ const Assessment: React.FC = () => {
             transition={{ duration: 0.6, delay: 0.4, ease: 'easeOut' }}
             className="text-xs sm:text-sm text-gray-500 italic mb-6 sm:mb-8 text-center"
           >
-            Note: This is not a clinical diagnosis. Consult a healthcare professional for a full evaluation.
+            <FormattedMessage id="assessment.disclaimer" defaultMessage="Note: This is not a clinical diagnosis. Consult a healthcare professional for a full evaluation." />
           </motion.p>
           <motion.img
             src={dummyPicture}
-            alt="Neurodiversity Picture"
+            alt={intl.formatMessage({ id: 'assessment.neurodiversity_picture_alt', defaultMessage: 'Neurodiversity Picture' })}
             initial={{ scale: 0, rotate: -10 }}
             animate={{ scale: 1, rotate: 0 , y: 40, x: -50}}
             transition={{ delay: 0.3, type: 'spring', stiffness: 150, damping: 10 }}
@@ -213,9 +216,11 @@ const Assessment: React.FC = () => {
               transition={{ duration: 0.5, ease: 'easeOut', x: -50 }}
               className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold"
             >
-              Neurodiversity Assessment
+              <FormattedMessage id="assessment.title" defaultMessage="Neurodiversity Assessment" />
             </motion.h1>
-            <p className="mt-2 text-xs sm:text-sm md:text-base opacity-90">Explore your traits</p>
+            <p className="mt-2 text-xs sm:text-sm md:text-base opacity-90">
+              <FormattedMessage id="assessment.subtitle" defaultMessage="Explore your traits" />
+            </p>
           </header>
 
           <main className="p-6 sm:p-8">
@@ -253,12 +258,14 @@ const Assessment: React.FC = () => {
                   ))}
                 </div>
 
-                <h3 className="text-base sm:text-lg font-semibold text-gray-800 text-center">{questions[currentQuestionIndex].text}</h3>
+                <h3 className="text-base sm:text-lg font-semibold text-gray-800 text-center">
+                  <FormattedMessage id={questions[currentQuestionIndex].textKey} defaultMessage="" />
+                </h3>
 
                 <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-6 mt-4">
                   {yesNoOptions.map((option) => (
                     <motion.button
-                      key={option.label}
+                      key={option.labelKey}
                       onClick={() => handleAnswerChange(questions[currentQuestionIndex].id, option.value)}
                       className={`w-full sm:w-auto px-6 py-2 sm:px-8 sm:py-3 rounded-full border-2 shadow-sm transition-all duration-300 ${
                         answers[questions[currentQuestionIndex].id - 1] === option.value
@@ -270,7 +277,7 @@ const Assessment: React.FC = () => {
                       transition={{ type: 'spring', stiffness: 200, damping: 10 }}
                       disabled={loading}
                     >
-                      {option.label}
+                      <FormattedMessage id={option.labelKey} defaultMessage="" />
                     </motion.button>
                   ))}
                 </div>
@@ -285,7 +292,7 @@ const Assessment: React.FC = () => {
                       whileTap={{ scale: loading ? 1 : 0.95 }}
                       transition={{ type: 'spring', stiffness: 200, damping: 10 }}
                     >
-                      Previous
+                      <FormattedMessage id="assessment.previous" defaultMessage="Previous" />
                     </motion.button>
                   )}
                 </div>
@@ -301,7 +308,9 @@ const Assessment: React.FC = () => {
                   transition={{ duration: 0.6, ease: 'easeOut' }}
                   className="mt-6 sm:mt-8 p-6 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-lg shadow-md text-center"
                 >
-                  <h2 className="text-xl sm:text-2xl font-bold text-indigo-700">Your Result</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-indigo-700">
+                    <FormattedMessage id="assessment.your_result" defaultMessage="Your Result" />
+                  </h2>
                   <motion.p
                     initial={{ y: 10 }}
                     animate={{ y: 0 }}
@@ -311,7 +320,9 @@ const Assessment: React.FC = () => {
                     {prediction.prediction}
                   </motion.p>
                   <div className="mt-4">
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-700">Prediction Confidence</h3>
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-700">
+                      <FormattedMessage id="assessment.prediction_confidence" defaultMessage="Prediction Confidence" />
+                    </h3>
                     <ul className="text-gray-600 mt-2 space-y-2">
                       {Object.entries(prediction.probabilities).map(([key, value]) => (
                         <motion.li
@@ -335,7 +346,7 @@ const Assessment: React.FC = () => {
                       whileTap={{ scale: 0.95 }}
                       transition={{ type: 'spring', stiffness: 200, damping: 10 }}
                     >
-                      Continue to Learning
+                      <FormattedMessage id="assessment.continue_to_learning" defaultMessage="Continue to Learning" />
                     </motion.button>
                     <motion.button
                       onClick={handleRetake}
@@ -344,7 +355,7 @@ const Assessment: React.FC = () => {
                       whileTap={{ scale: 0.95 }}
                       transition={{ type: 'spring', stiffness: 200, damping: 10 }}
                     >
-                      Retake Test
+                      <FormattedMessage id="assessment.retake_test" defaultMessage="Retake Test" />
                     </motion.button>
                   </div>
                 </motion.div>

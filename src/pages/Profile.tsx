@@ -1,7 +1,10 @@
-import { motion } from 'framer-motion';
+﻿import { motion } from 'framer-motion';
 import { User, Mail, Calendar, Award, BookOpen, Activity } from 'lucide-react';
 
+
 const Profile = () => {
+  
+
   const achievements = [
     {
       title: "Learning Streak",
@@ -49,7 +52,7 @@ const Profile = () => {
             <User className="h-10 w-10 text-gray-600" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">John Doe</h1>
+            <h1 className="text-2xl font-bold text-gray-800">{"John Doe"}</h1>
             <div className="flex items-center space-x-4 text-gray-600">
               <div className="flex items-center">
                 <Mail className="h-4 w-4 mr-1" />
@@ -57,7 +60,7 @@ const Profile = () => {
               </div>
               <div className="flex items-center">
                 <Calendar className="h-4 w-4 mr-1" />
-                Joined March 2024
+                {"Joined March 2024"}
               </div>
             </div>
           </div>
@@ -72,7 +75,7 @@ const Profile = () => {
         >
           <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
             <Award className="h-5 w-5 mr-2 text-gray-600" />
-            Achievements
+            {"Achievements"}
           </h2>
           <div className="space-y-4">
             {achievements.map((achievement, index) => (
@@ -93,7 +96,7 @@ const Profile = () => {
         >
           <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
             <Activity className="h-5 w-5 mr-2 text-gray-600" />
-            Recent Activity
+            {"Recent Activity"}
           </h2>
           <div className="space-y-4">
             {activities.map((activity, index) => (
@@ -125,15 +128,15 @@ const Profile = () => {
       >
         <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
           <BookOpen className="h-5 w-5 mr-2 text-gray-600" />
-          Learning Path
+          {"Learning Path"}
         </h2>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-medium text-gray-800">Current Focus</h3>
-              <p className="text-sm text-gray-600">ADHD Management Techniques</p>
+              <h3 className="font-medium text-gray-800">{"Current Focus"}</h3>
+              <p className="text-sm text-gray-600">{"ADHD Management Techniques"}</p>
             </div>
-            <button className="btn-soft">Continue Learning</button>
+            <button className="btn-soft">{"Continue Learning"}</button>
           </div>
           <div className="w-full h-2 bg-gray-100 rounded-full">
             <div className="h-full bg-gray-600 rounded-full" style={{ width: '60%' }} />

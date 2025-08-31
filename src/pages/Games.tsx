@@ -1,6 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+﻿/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { FormattedMessage, useIntl } from "react-intl";
 import MemoryMatch from "../components/games/MemoryMatch";
 import WordPuzzle from "../components/games/WordPuzzle";
 import SpeedReading from "../components/games/SpeedReading";
@@ -11,8 +12,10 @@ import ScoopedGame from "../components/games/ScoopedGame";
 import HandDrawGame from "../components/games/HandDrawGame";
 import { Gamepad2, X, Play, Star, Trophy, Home, User, LogIn, LogOut, Settings, Zap, Target, Award, Medal, Crown, Sparkles, TrendingUp, Clock, Users, Flame } from "lucide-react";
 import { SpeechText } from "../components/speach";
-import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, where, Timestamp } from "firebase/firestore";
+import { collection, addDoc, query, orderBy, limit, getDocs, where, Timestamp } from "firebase/firestore";
+import { db } from "./firebase";
 import { useAuth } from "./AuthContext";
+
 
 interface Game {
   id: string;
@@ -42,6 +45,41 @@ interface UserAchievement {
 }
 
 const GamesPage: React.FC = () => {
+  const intl = useIntl();
+  
+  // Helper function to get category translation key
+  const getCategoryTranslationKey = (categoryId: string): string => {
+    return `games.category_${categoryId}`;
+  };
+
+  // Helper function to get translated category name
+  const getCategoryName = (categoryId: string): string => {
+    const key = getCategoryTranslationKey(categoryId);
+    return intl.formatMessage({ id: key, defaultMessage: categoryId });
+  };
+
+  // Helper function to get game title translation key
+  const getGameTitleTranslationKey = (gameId: string): string => {
+    return `games.${gameId}_title`;
+  };
+
+  // Helper function to get game description translation key
+  const getGameDescriptionTranslationKey = (gameId: string): string => {
+    return `games.${gameId}_description`;
+  };
+
+  // Helper function to get translated game title
+  const getGameTitle = (gameId: string): string => {
+    const key = getGameTitleTranslationKey(gameId);
+    return intl.formatMessage({ id: key, defaultMessage: gameId });
+  };
+
+  // Helper function to get translated game description
+  const getGameDescription = (gameId: string): string => {
+    const key = getGameDescriptionTranslationKey(gameId);
+    return intl.formatMessage({ id: key, defaultMessage: 'Game description' });
+  };
+  
   const [activeGame, setActiveGame] = useState<string | null>(null);
   const [hoveredGame, setHoveredGame] = useState<string | null>(null);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
@@ -52,7 +90,6 @@ const GamesPage: React.FC = () => {
   const [userAchievements, setUserAchievements] = useState<UserAchievement[]>([]);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const { user, logout } = useAuth();
-  const db = getFirestore();
 
   const games: Game[] = [
     { id: "scooped", title: "SCOOP'D", component: ScoopedGame, logo: "https://cdn-icons-png.flaticon.com/512/3176/3176366.png", description: "Catch falling letters with your bucket in this fast-paced game!", rating: 4.9, category: "skill" },
@@ -117,7 +154,7 @@ const GamesPage: React.FC = () => {
     };
 
     fetchRealTimeStats();
-  }, [db]);
+  }, []);
 
   // Fetch user-specific achievements
   useEffect(() => {
@@ -141,7 +178,7 @@ const GamesPage: React.FC = () => {
             id: "first_game",
             title: "First Steps",
             description: "Played your first brain training game",
-            icon: "🎮",
+            icon: "ðŸŽ®",
             unlockedAt: new Date(userScores[0].timestamp?.toDate() || new Date())
           });
         }
@@ -151,7 +188,7 @@ const GamesPage: React.FC = () => {
             id: "dedicated_player",
             title: "Dedicated Player",
             description: "Completed 5 different games",
-            icon: "🏆",
+            icon: "ðŸ†",
             unlockedAt: new Date()
           });
         }
@@ -162,7 +199,7 @@ const GamesPage: React.FC = () => {
             id: "high_scorer",
             title: "High Scorer",
             description: "Achieved a score above 80",
-            icon: "⭐",
+            icon: "â­",
             unlockedAt: new Date()
           });
         }
@@ -178,7 +215,7 @@ const GamesPage: React.FC = () => {
             id: "weekly_warrior",
             title: "Weekly Warrior",
             description: "Played 3 games this week",
-            icon: "🔥",
+            icon: "ðŸ”¥",
             unlockedAt: new Date()
           });
         }
@@ -191,7 +228,7 @@ const GamesPage: React.FC = () => {
     };
 
     fetchUserAchievements();
-  }, [user, db]);
+  }, [user]);
 
   // Fetch leaderboard data
   useEffect(() => {
@@ -235,7 +272,7 @@ const GamesPage: React.FC = () => {
     };
 
     fetchLeaderboard();
-  }, [db, activeGame]);
+  }, [activeGame]);
 
   const handleGameComplete = async (score: number) => {
     if (!user) {
@@ -373,7 +410,9 @@ const GamesPage: React.FC = () => {
               transition={{ duration: 0.6, delay: 0.4 }}
               className="text-4xl md:text-5xl font-bold mb-4 text-black"
             >
-              <SpeechText>Level Up Your Brain!</SpeechText>
+              <SpeechText>
+                <FormattedMessage id="games.title" defaultMessage="Level Up Your Brain!" />
+              </SpeechText>
             </motion.h1>
             
             <motion.p 
@@ -383,7 +422,10 @@ const GamesPage: React.FC = () => {
               className="text-lg md:text-xl text-gray-600 mb-6 leading-relaxed"
             >
               <SpeechText>
-                Embark on an epic cognitive adventure! Complete challenges, earn achievements, and climb the leaderboards while boosting your brainpower.
+                <FormattedMessage 
+                  id="games.choose_game" 
+                  defaultMessage="Embark on an epic cognitive adventure! Complete challenges, earn achievements, and climb the leaderboards while boosting your brainpower." 
+                />
               </SpeechText>
             </motion.p>
 
@@ -401,7 +443,9 @@ const GamesPage: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-xl font-bold text-black">{games.length}</p>
-                    <p className="text-gray-600 text-xs">Brain Games</p>
+                    <p className="text-gray-600 text-xs">
+                      <FormattedMessage id="games.brain_training" defaultMessage="Brain Games" />
+                    </p>
                   </div>
                 </div>
               </div>
@@ -415,7 +459,9 @@ const GamesPage: React.FC = () => {
                     <p className="text-xl font-bold text-black">
                       {isLoadingStats ? "..." : playerCount.toLocaleString()}
                     </p>
-                    <p className="text-gray-600 text-xs">Active Players</p>
+                    <p className="text-gray-600 text-xs">
+                      <FormattedMessage id="common.active_players" defaultMessage="Active Players" />
+                    </p>
                   </div>
                 </div>
               </div>
@@ -429,7 +475,9 @@ const GamesPage: React.FC = () => {
                     <p className="text-xl font-bold text-black">
                       {isLoadingStats ? "..." : totalAchievements}
                     </p>
-                    <p className="text-gray-600 text-xs">Game Records</p>
+                    <p className="text-gray-600 text-xs">
+                      <FormattedMessage id="common.game_records" defaultMessage="Game Records" />
+                    </p>
                   </div>
                 </div>
               </div>
@@ -449,7 +497,7 @@ const GamesPage: React.FC = () => {
                 >
                   <div className="flex items-center space-x-2">
                     <Zap className="w-4 h-4" />
-                    <SpeechText>Start Your Journey</SpeechText>
+                    <SpeechText>{"Start Your Journey"}</SpeechText>
                   </div>
                 </motion.button>
                 
@@ -461,7 +509,7 @@ const GamesPage: React.FC = () => {
                 >
                   <div className="flex items-center space-x-2">
                     <Trophy className="w-4 h-4" />
-                    <SpeechText>View Leaderboard</SpeechText>
+                    <SpeechText>{"View Leaderboard"}</SpeechText>
                   </div>
                 </motion.button>
               </motion.div>
@@ -562,7 +610,7 @@ const GamesPage: React.FC = () => {
               <div className="p-6 relative z-10">
                 <div className="flex items-start justify-between mb-3">
                   <h3 className="text-xl font-bold text-black group-hover:text-gray-700 transition-colors duration-300">
-                    <SpeechText>{game.title}</SpeechText>
+                    <SpeechText>{getGameTitle(game.id)}</SpeechText>
                   </h3>
                   <motion.div
                     whileHover={{ rotate: 360 }}
@@ -574,7 +622,7 @@ const GamesPage: React.FC = () => {
                 </div>
                 
                 <p className="text-gray-600 text-sm mb-4 leading-relaxed">
-                  <SpeechText>{game.description}</SpeechText>
+                  <SpeechText>{getGameDescription(game.id)}</SpeechText>
                 </p>
                 
                 <div className="flex justify-between items-center">
@@ -582,7 +630,7 @@ const GamesPage: React.FC = () => {
                     whileHover={{ scale: 1.05 }}
                     className="text-xs px-3 py-2 bg-gray-100 rounded-full text-black border border-gray-200"
                   >
-                    {categories.find(c => c.id === game.category)?.name}
+                    {getCategoryName(game.category)}
                   </motion.span>
                   
                   <motion.button
@@ -592,15 +640,17 @@ const GamesPage: React.FC = () => {
                     className="px-6 py-3 bg-black text-white rounded-xl text-sm font-bold flex items-center space-x-2 shadow-lg hover:shadow-xl transition-all duration-300"
                   >
                     <Play className="w-4 h-4" />
-                    <span>PLAY</span>
+                    <span>
+                      <FormattedMessage id="games.play_now" defaultMessage="PLAY" />
+                    </span>
                   </motion.button>
                 </div>
 
                 {/* Progress bar */}
                 <div className="mt-4 pt-4 border-t border-gray-200">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs text-gray-600">Your Progress</span>
-                    <span className="text-xs text-black font-bold">Level {Math.floor(Math.random() * 10) + 1}</span>
+                    <span className="text-xs text-gray-600">{"Your Progress"}</span>
+                    <span className="text-xs text-black font-bold">{"Level " + (Math.floor(Math.random() * 10) + 1)}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <motion.div
@@ -644,7 +694,7 @@ const GamesPage: React.FC = () => {
           >
             <h3 className="text-2xl font-bold text-black mb-4 flex items-center">
               <Trophy className="w-6 h-6 mr-3 text-black" />
-              <SpeechText>Your Achievements</SpeechText>
+              <SpeechText>{"Your Achievements"}</SpeechText>
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {userAchievements.length > 0 ? (
@@ -670,7 +720,7 @@ const GamesPage: React.FC = () => {
                   <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Trophy className="w-8 h-8 text-gray-400" />
                   </div>
-                  <p className="text-gray-600">No achievements yet. Start playing games to unlock them!</p>
+                  <p className="text-gray-600">{"No achievements yet. Start playing games to unlock them!"}</p>
                 </div>
               )}
             </div>
@@ -734,7 +784,7 @@ const GamesPage: React.FC = () => {
                       transition={{ duration: 0.5, delay: 0.2 }}
                       className="text-4xl font-bold text-black mb-3"
                     >
-                      <SpeechText>{selectedGame.title}</SpeechText>
+                      <SpeechText>{getGameTitle(selectedGame.id)}</SpeechText>
                     </motion.h2>
                     
                     <motion.p 
@@ -743,7 +793,7 @@ const GamesPage: React.FC = () => {
                       transition={{ duration: 0.5, delay: 0.3 }}
                       className="text-gray-600 mb-4 text-lg leading-relaxed"
                     >
-                      <SpeechText>{selectedGame.description}</SpeechText>
+                      <SpeechText>{getGameDescription(selectedGame.id)}</SpeechText>
                     </motion.p>
                     
                     <motion.div 
@@ -759,7 +809,7 @@ const GamesPage: React.FC = () => {
                       
                       <div className="bg-gray-100 text-black px-4 py-2 rounded-full border border-gray-300">
                         <span className="font-semibold">
-                          {categories.find(c => c.id === selectedGame.category)?.name}
+                          {getCategoryName(selectedGame.category)}
                         </span>
                       </div>
                       
@@ -815,7 +865,7 @@ const GamesPage: React.FC = () => {
                       className="px-6 py-3 bg-black text-white rounded-xl font-bold flex items-center space-x-2 shadow-lg hover:shadow-xl transition-all"
                     >
                       <Trophy className="w-5 h-5" />
-                      <span>Submit Score</span>
+                      <span>{"Submit Score"}</span>
                     </motion.button>
                     
                     <motion.button
@@ -825,7 +875,7 @@ const GamesPage: React.FC = () => {
                       className="px-6 py-3 bg-gray-100 text-black rounded-xl font-semibold flex items-center space-x-2 border border-gray-300 hover:bg-gray-200 transition-all"
                     >
                       <Medal className="w-5 h-5" />
-                      <span>View Rankings</span>
+                      <span>{"View Rankings"}</span>
                     </motion.button>
                   </motion.div>
                 )}
@@ -863,7 +913,7 @@ const GamesPage: React.FC = () => {
                     </div>
                     <SpeechText>
                       {activeGame 
-                        ? `${games.find(g => g.id === activeGame)?.title} Rankings`
+                        ? `${games.find(g => g.id === activeGame)?.title} ${Rankings}`
                         : "Global Champions"}
                     </SpeechText>
                   </motion.h3>
@@ -925,7 +975,7 @@ const GamesPage: React.FC = () => {
                                 animate={{ scale: 1 }}
                                 className="bg-black text-white text-xs px-2 py-1 rounded-full font-bold"
                               >
-                                YOU
+                                {YOU}
                               </motion.span>
                             )}
                           </div>
@@ -969,8 +1019,8 @@ const GamesPage: React.FC = () => {
                       <div className="w-20 h-20 bg-gray-100 border border-gray-300 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Trophy className="w-10 h-10 text-black" />
                       </div>
-                      <p className="text-black text-lg font-semibold mb-2">No Champions Yet!</p>
-                      <p className="text-gray-600">Be the first to claim victory and start the leaderboard!</p>
+                      <p className="text-black text-lg font-semibold mb-2">{"No Champions Yet!"}</p>
+                      <p className="text-gray-600">{"Be the first to claim victory and start the leaderboard!"}</p>
                     </motion.div>
                   )}
                 </div>
@@ -989,7 +1039,7 @@ const GamesPage: React.FC = () => {
                       onClick={() => setShowLeaderboard(false)}
                       className="w-full px-6 py-3 bg-black text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all"
                     >
-                      <SpeechText>Challenge the Champions!</SpeechText>
+                      <SpeechText>{"Challenge the Champions!"}</SpeechText>
                     </motion.button>
                   </motion.div>
                 )}

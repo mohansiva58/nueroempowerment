@@ -5,11 +5,14 @@ import { Brain, BookOpen, Users, Activity, ChevronLeft, ChevronRight, MessageSqu
 import { SpeechText } from '../components/speach';
 import { Link } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import { getFirestore, collection, addDoc, Timestamp, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, addDoc, Timestamp, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
+import { db } from './firebase';
 import Login from './Login';
-const db = getFirestore();
+import { FormattedMessage, useIntl } from 'react-intl';
 
 const Home = () => {
+  const { user } = useAuth();
+  const intl = useIntl();
   const [currentCourse, setCurrentCourse] = useState(0);
   const [currentGame, setCurrentGame] = useState(0);
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
@@ -26,7 +29,79 @@ const Home = () => {
     avgSatisfaction: 95 // Static satisfaction rate
   });
   const [statsLoading, setStatsLoading] = useState(true);
-  const { user } = useAuth();
+
+  // Helper function to get translation key for course titles
+  const getCourseTranslationKey = (courseTitle: string) => {
+    const titleMap: { [key: string]: string } = {
+      'Understanding ADHD': 'home.understanding_adhd',
+      'Dyslexia Strategies': 'home.dyslexia_strategies', 
+      'Autism Awareness': 'home.autism_awareness',
+      'Sensory Integration': 'home.sensory_integration',
+      'Time Management for ADHD': 'home.time_management_adhd',
+      'OCD Coping Mechanisms': 'home.ocd_coping',
+      'Bipolar Disorder Basics': 'home.bipolar_basics',
+      'Sensory Processing Skills': 'home.sensory_processing',
+      'Down Syndrome Learning Strategies': 'home.down_syndrome_learning',
+      'Anatomy and Physiology': 'home.anatomy_physiology',
+      'Pharmacology Basics': 'home.pharmacology_basics',
+      'Medical Ethics and Professionalism': 'home.medical_ethics',
+      'Disease Pathophysiology': 'home.disease_pathophysiology'
+    };
+    return titleMap[courseTitle] || courseTitle;
+  };
+
+  // Helper function to get translation key for course levels
+  const getLevelTranslationKey = (level: string) => {
+    const levelMap: { [key: string]: string } = {
+      'Beginner': 'home.beginner',
+      'Intermediate': 'home.intermediate',
+      'Advanced': 'home.advanced'
+    };
+    return levelMap[level] || level;
+  };
+
+  // Helper function to get translation key for game titles
+  const getGameTranslationKey = (title: string) => {
+    const gameMap: { [key: string]: string } = {
+      'Memory Match': 'games.memory_match',
+      'Word Puzzle': 'games.word_puzzle',
+      'Speed Reading': 'games.speed_reading',
+      'Pattern Master': 'games.pattern_master',
+      'Emotion Match': 'games.emotion_match',
+      'Focus Trainer': 'games.focus_trainer',
+      'Math Blitz': 'games.math_blitz',
+      'Typing Fury': 'games.typing_fury'
+    };
+    return gameMap[title] || title;
+  };
+
+  // Helper function to get translation key for game descriptions
+  const getGameDescTranslationKey = (title: string) => {
+    const gameDescMap: { [key: string]: string } = {
+      'Memory Match': 'games.memory_match_desc',
+      'Word Puzzle': 'games.word_puzzle_desc',
+      'Speed Reading': 'games.speed_reading_desc',
+      'Pattern Master': 'games.pattern_master_desc',
+      'Emotion Match': 'games.emotion_match_desc',
+      'Focus Trainer': 'games.focus_trainer_desc',
+      'Math Blitz': 'games.math_blitz_desc',
+      'Typing Fury': 'games.typing_fury_desc'
+    };
+    return gameDescMap[title] || title;
+  };
+
+  // Helper function to get translation key for game categories
+  const getGameCategoryTranslationKey = (category: string) => {
+    const categoryMap: { [key: string]: string } = {
+      'memory': 'games.category.memory',
+      'puzzle': 'games.category.puzzle',
+      'brain': 'games.category.brain',
+      'logic': 'games.category.logic',
+      'social': 'games.category.social',
+      'skill': 'games.category.skill'
+    };
+    return categoryMap[category] || category;
+  };
 
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30 });
@@ -227,8 +302,12 @@ const Home = () => {
             transition={{ delay: 0.5, duration: 0.6 }}
           >
             <SpeechText>
-              <h1 className="text-3xl md:text-4xl font-bold mb-2">Explore Neurodiversity</h1>
-              <p className="text-lg">Discover resources and games tailored for unique minds.</p>
+              <h1 className="text-3xl md:text-4xl font-bold mb-2">
+                <FormattedMessage id="home.explore_neurodiversity" defaultMessage="Explore Neurodiversity" />
+              </h1>
+              <p className="text-lg">
+                <FormattedMessage id="home.discover_resources" defaultMessage="Discover resources and games tailored for unique minds." />
+              </p>
             </SpeechText>
           </motion.div>
         </motion.section>
@@ -252,7 +331,7 @@ const Home = () => {
                 transition={{ delay: 0.1 }}
               >
                 <Brain className="w-4 h-4" />
-                About Neurodiversity
+                <FormattedMessage id="home.about_neurodiversity" defaultMessage="About Neurodiversity" />
               </motion.div>
               <motion.h2 
                 className="text-4xl lg:text-5xl font-bold text-black mb-6 leading-tight font-mono"
@@ -261,7 +340,9 @@ const Home = () => {
                 viewport={{ once: true }}
                 transition={{ delay: 0.2 }}
               >
-                <SpeechText>What is Neurodiversity?</SpeechText>
+                <SpeechText>
+                  <FormattedMessage id="home.what_is_neurodiversity" defaultMessage="What is Neurodiversity?" />
+                </SpeechText>
               </motion.h2>
               <motion.p 
                 className="text-xl text-gray-800 mb-8 leading-relaxed font-mono"
@@ -271,8 +352,10 @@ const Home = () => {
                 transition={{ delay: 0.4 }}
               >
                 <SpeechText>
-                  Neurodiversity celebrates the natural variations in human brain function and behavior,
-                  recognizing conditions like ADHD, autism, and dyslexia as differences rather than deficits.
+                  <FormattedMessage 
+                    id="home.neurodiversity_description" 
+                    defaultMessage="Neurodiversity celebrates the natural variations in human brain function and behavior, recognizing conditions like ADHD, autism, and dyslexia as differences rather than deficits." 
+                  />
                 </SpeechText>
               </motion.p>
               <motion.div
@@ -285,7 +368,9 @@ const Home = () => {
                   to="/about" 
                   className="group inline-flex items-center gap-3 px-8 py-4 bg-black text-white rounded-xl font-bold shadow-lg hover:bg-gray-800 transition-all duration-300 transform hover:-translate-y-1 font-mono"
                 >
-                  <SpeechText>Learn More</SpeechText>
+                  <SpeechText>
+                    <FormattedMessage id="home.learn_more" defaultMessage="Learn More" />
+                  </SpeechText>
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </motion.div>
@@ -322,27 +407,29 @@ const Home = () => {
                 variants={itemVariants}
               >
                 <Activity className="w-4 h-4" />
-                Platform Features
+                <FormattedMessage id="home.platform_features" defaultMessage="Platform Features" />
               </motion.div>
               <motion.h2 
                 className="text-4xl lg:text-5xl font-bold text-black mb-4 font-mono"
                 variants={itemVariants}
               >
-                <SpeechText>Our Features</SpeechText>
+                <SpeechText>
+                  <FormattedMessage id="home.our_features" defaultMessage="Our Features" />
+                </SpeechText>
               </motion.h2>
               <motion.p 
                 className="text-xl text-gray-700 max-w-2xl mx-auto font-mono"
                 variants={itemVariants}
               >
-                Discover powerful tools designed to enhance your learning journey
+                <FormattedMessage id="home.discover_tools" defaultMessage="Discover powerful tools designed to enhance your learning journey" />
               </motion.p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {[
-                { icon: Brain, title: 'Brain Games', desc: 'Enhance cognitive abilities through fun challenges' },
-                { icon: BookOpen, title: 'Courses', desc: 'Structured learning paths for all levels' },
-                { icon: Users, title: 'Community', desc: 'Connect with others on similar journeys' },
-                { icon: Activity, title: 'Tracking', desc: 'Monitor your progress and growth' },
+                { icon: Brain, titleId: 'home.brain_games', descId: 'home.brain_games_desc' },
+                { icon: BookOpen, titleId: 'home.courses', descId: 'home.courses_desc' },
+                { icon: Users, titleId: 'home.community', descId: 'home.community_desc' },
+                { icon: Activity, titleId: 'home.tracking', descId: 'home.tracking_desc' },
               ].map((feature, index) => (
                 <motion.div
                   key={index}
@@ -356,10 +443,10 @@ const Home = () => {
                       <feature.icon className="w-8 h-8 text-white" />
                     </div>
                     <h3 className="text-2xl font-bold text-black mb-4 group-hover:text-gray-800 transition-colors font-mono">
-                      {feature.title}
+                      <FormattedMessage id={feature.titleId} defaultMessage="" />
                     </h3>
                     <p className="text-gray-700 leading-relaxed group-hover:text-gray-600 transition-colors font-mono">
-                      {feature.desc}
+                      <FormattedMessage id={feature.descId} defaultMessage="" />
                     </p>
                   </div>
                 </motion.div>
@@ -382,14 +469,19 @@ const Home = () => {
                   whileInView={{ opacity: 1, x: 0 }}
                 >
                   <BookOpen className="w-4 h-4" />
-                  Learning Paths {!isCoursesHovered && <span className="text-xs opacity-70">(Auto-scrolling)</span>}
+                  <FormattedMessage id="home.learning_paths" defaultMessage="Learning Paths" />
+                  {!isCoursesHovered && <span className="text-xs opacity-70">
+                    (<FormattedMessage id="home.auto_scrolling" defaultMessage="Auto-scrolling" />)
+                  </span>}
                 </motion.div>
                 <motion.h2 
                   className="text-4xl lg:text-5xl font-bold text-black font-mono"
                   initial={{ opacity: 0, x: -20 }}
                   whileInView={{ opacity: 1, x: 0 }}
                 >
-                  <SpeechText>Featured Courses</SpeechText>
+                  <SpeechText>
+                    <FormattedMessage id="home.featured_courses" defaultMessage="Featured Courses" />
+                  </SpeechText>
                 </motion.h2>
               </div>
               <motion.div
@@ -400,7 +492,9 @@ const Home = () => {
                   to="/courses" 
                   className="group inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl font-bold shadow-lg hover:bg-gray-800 transition-all duration-300 transform hover:-translate-y-1 font-mono"
                 >
-                  <SpeechText>View All</SpeechText> 
+                  <SpeechText>
+                    <FormattedMessage id="common.view_all" defaultMessage="View All" />
+                  </SpeechText> 
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </motion.div>
@@ -438,25 +532,31 @@ const Home = () => {
                             </div>
                           </div>
                           <div className="absolute top-4 right-4 px-3 py-1 bg-white border border-black rounded-full text-sm font-bold text-black font-mono">
-                            {course.level}
+                            <FormattedMessage 
+                              id={getLevelTranslationKey(course.level)} 
+                              defaultMessage={course.level} 
+                            />
                           </div>
                           <div className="absolute top-4 left-4 p-2 bg-black rounded-xl">
                             <course.icon className="w-5 h-5 text-white" />
                           </div>
                           {course.progress === 100 && (
                             <div className="absolute bottom-4 right-4 px-2 py-1 bg-green-500 text-white rounded-full text-xs font-bold font-mono">
-                              ✓ Complete
+                              ✓ <FormattedMessage id="home.complete" defaultMessage="Complete" />
                             </div>
                           )}
                           {course.progress > 0 && course.progress < 100 && (
                             <div className="absolute bottom-4 right-4 px-2 py-1 bg-blue-500 text-white rounded-full text-xs font-bold font-mono">
-                              In Progress
+                              <FormattedMessage id="home.in_progress" defaultMessage="In Progress" />
                             </div>
                           )}
                         </div>
                         <div className="p-6">
                           <h3 className="text-xl font-bold text-black mb-3 group-hover:text-gray-700 transition-colors font-mono">
-                            {course.title}
+                            <FormattedMessage 
+                              id={getCourseTranslationKey(course.title)} 
+                              defaultMessage={course.title} 
+                            />
                           </h3>
                           <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
                             <span className="flex items-center gap-1 font-mono">
@@ -466,7 +566,7 @@ const Home = () => {
                           </div>
                           <div className="mb-6">
                             <div className="flex justify-between text-sm text-gray-700 mb-2 font-mono">
-                              <span>Progress</span>
+                              <span><FormattedMessage id="home.progress" defaultMessage="Progress" /></span>
                               <span>{course.progress}%</span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden border border-gray-300">
@@ -482,7 +582,9 @@ const Home = () => {
                             to={course.link} 
                             className="group/link inline-flex items-center gap-2 w-full justify-center px-6 py-3 bg-black text-white rounded-xl font-bold shadow-lg hover:bg-gray-800 transition-all duration-300 transform hover:-translate-y-1 font-mono"
                           >
-                            <SpeechText>Continue</SpeechText> 
+                            <SpeechText>
+                              <FormattedMessage id="common.continue" defaultMessage="Continue" />
+                            </SpeechText> 
                             <ArrowRight className="w-4 h-4 group-hover/link:translate-x-1 transition-transform" />
                           </Link>
                         </div>
@@ -538,14 +640,19 @@ const Home = () => {
                   whileInView={{ opacity: 1, x: 0 }}
                 >
                   <Gamepad2 className="w-4 h-4" />
-                  Interactive Games {!isGamesHovered && <span className="text-xs opacity-70">(Auto-scrolling)</span>}
+                  <FormattedMessage id="home.interactive_games" defaultMessage="Interactive Games" />
+                  {!isGamesHovered && <span className="text-xs opacity-70">
+                    (<FormattedMessage id="home.auto_scrolling" defaultMessage="Auto-scrolling" />)
+                  </span>}
                 </motion.div>
                 <motion.h2 
                   className="text-4xl lg:text-5xl font-bold text-black font-mono"
                   initial={{ opacity: 0, x: -20 }}
                   whileInView={{ opacity: 1, x: 0 }}
                 >
-                  <SpeechText>Featured Games</SpeechText>
+                  <SpeechText>
+                    <FormattedMessage id="home.featured_games" defaultMessage="Featured Games" />
+                  </SpeechText>
                 </motion.h2>
               </div>
               <motion.div
@@ -556,7 +663,9 @@ const Home = () => {
                   to="/games" 
                   className="group inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl font-bold shadow-lg hover:bg-gray-800 transition-all duration-300 transform hover:-translate-y-1 font-mono"
                 >
-                  <SpeechText>View All</SpeechText> 
+                  <SpeechText>
+                    <FormattedMessage id="common.view_all" defaultMessage="View All" />
+                  </SpeechText> 
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </motion.div>
@@ -600,21 +709,32 @@ const Home = () => {
                         </div>
                         <div className="p-6">
                           <h3 className="text-xl font-bold text-black mb-3 group-hover:text-gray-700 transition-colors font-mono">
-                            {game.title}
+                            <FormattedMessage 
+                              id={getGameTranslationKey(game.title)} 
+                              defaultMessage={game.title} 
+                            />
                           </h3>
                           <p className="text-gray-700 mb-6 leading-relaxed font-mono">
-                            {game.description}
+                            <FormattedMessage 
+                              id={getGameDescTranslationKey(game.title)} 
+                              defaultMessage={game.description} 
+                            />
                           </p>
                           <div className="flex items-center justify-between mb-6">
                             <span className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 border border-gray-300 rounded-full text-sm font-bold text-black capitalize font-mono">
-                              {game.category}
+                              <FormattedMessage 
+                                id={getGameCategoryTranslationKey(game.category)} 
+                                defaultMessage={game.category} 
+                              />
                             </span>
                           </div>
                           <Link 
                             to={game.link} 
                             className="group/link inline-flex items-center gap-2 w-full justify-center px-6 py-3 bg-black text-white rounded-xl font-bold shadow-lg hover:bg-gray-800 transition-all duration-300 transform hover:-translate-y-1 font-mono"
                           >
-                            <SpeechText>Play Now</SpeechText>
+                            <SpeechText>
+                              <FormattedMessage id="common.play_now" defaultMessage="Play Now" />
+                            </SpeechText>
                             <Gamepad2 className="w-4 h-4 group-hover/link:scale-110 transition-transform" />
                           </Link>
                         </div>
@@ -676,26 +796,28 @@ const Home = () => {
                     variants={itemVariants}
                   >
                     <BarChart2 className="w-4 h-4" />
-                    Platform Statistics
+                    <FormattedMessage id="home.platform_statistics" defaultMessage="Platform Statistics" />
                   </motion.div>
                   <motion.h2 
                     className="text-4xl lg:text-5xl font-bold mb-4 font-mono"
                     variants={itemVariants}
                   >
-                    <SpeechText>Our Impact</SpeechText>
+                    <SpeechText>
+                      <FormattedMessage id="home.our_impact" defaultMessage="Our Impact" />
+                    </SpeechText>
                   </motion.h2>
                   <motion.p 
                     className="text-xl opacity-90 max-w-2xl mx-auto font-mono"
                     variants={itemVariants}
                   >
-                    Join thousands of learners on their neurodiversity journey
+                    <FormattedMessage id="home.join_thousands" defaultMessage="Join thousands of learners on their neurodiversity journey" />
                   </motion.p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
                   {[
-                    { icon: Users, stat: `${stats.totalUsers.toLocaleString()}+`, label: 'Total Users' },
-                    { icon: BookOpen, stat: `${stats.totalCourses}+`, label: 'Courses' },
-                    { icon: Star, stat: `${stats.avgSatisfaction}%`, label: 'Satisfaction' },
+                    { icon: Users, stat: `${stats.totalUsers.toLocaleString()}+`, labelId: 'home.total_users' },
+                    { icon: BookOpen, stat: `${stats.totalCourses}+`, labelId: 'home.courses' },
+                    { icon: Star, stat: `${stats.avgSatisfaction}%`, labelId: 'home.satisfaction' },
                   ].map((item, index) => (
                     <motion.div
                       key={index}
@@ -717,7 +839,9 @@ const Home = () => {
                           item.stat
                         )}
                       </motion.h3>
-                      <p className="text-xl opacity-90 font-bold font-mono">{item.label}</p>
+                      <p className="text-xl opacity-90 font-bold font-mono">
+                        <FormattedMessage id={item.labelId} defaultMessage="" />
+                      </p>
                     </motion.div>
                   ))}
                 </div>
@@ -740,7 +864,7 @@ const Home = () => {
                 transition={{ delay: 0.1 }}
               >
                 <Activity className="w-4 h-4" />
-                Get Started Today
+                <FormattedMessage id="home.get_started_today" defaultMessage="Get Started Today" />
               </motion.div>
               <motion.h2 
                 className="text-4xl lg:text-6xl font-bold text-black mb-6 font-mono"
@@ -748,7 +872,9 @@ const Home = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                <SpeechText>Ready to Get Started?</SpeechText>
+                <SpeechText>
+                  <FormattedMessage id="home.ready_to_get_started" defaultMessage="Ready to Get Started?" />
+                </SpeechText>
               </motion.h2>
               <motion.p 
                 className="text-xl text-gray-800 mb-12 max-w-3xl mx-auto leading-relaxed font-mono"
@@ -757,8 +883,7 @@ const Home = () => {
                 transition={{ delay: 0.3 }}
               >
                 <SpeechText>
-                  Join thousands of users improving their cognitive skills through our platform.
-                  Start your journey towards understanding and embracing neurodiversity today.
+                  <FormattedMessage id="home.join_users_description" defaultMessage="Join thousands of users improving their cognitive skills through our platform. Start your journey towards understanding and embracing neurodiversity today." />
                 </SpeechText>
               </motion.p>
               <motion.div
@@ -772,7 +897,9 @@ const Home = () => {
                     whileTap={{ scale: 0.98 }}
                     className="group inline-flex items-center gap-3 px-12 py-5 bg-black text-white rounded-2xl font-bold text-lg shadow-2xl hover:bg-gray-800 transition-all duration-300 transform font-mono"
                   >
-                    <SpeechText>Start Now</SpeechText>
+                    <SpeechText>
+                      <FormattedMessage id="home.start_now" defaultMessage="Start Now" />
+                    </SpeechText>
                     <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                   </motion.button>
                 </Link>
@@ -795,19 +922,23 @@ const Home = () => {
                   variants={itemVariants}
                 >
                   <Mail className="w-4 h-4" />
-                  Contact Us
+                  <FormattedMessage id="home.contact_us" defaultMessage="Contact Us" />
                 </motion.div>
                 <h2 className="text-4xl lg:text-5xl font-bold text-black mb-6 font-mono">
-                  <SpeechText>Get in Touch</SpeechText>
+                  <SpeechText>
+                    <FormattedMessage id="home.get_in_touch" defaultMessage="Get in Touch" />
+                  </SpeechText>
                 </h2>
                 <p className="text-xl text-gray-700 mb-8 font-mono">
-                  Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+                  <FormattedMessage id="home.contact_description" defaultMessage="Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible." />
                 </p>
               </div>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <label className="block text-sm font-bold text-black mb-3 font-mono">
-                    <SpeechText>Email Address</SpeechText>
+                    <SpeechText>
+                      <FormattedMessage id="home.email_address" defaultMessage="Email Address" />
+                    </SpeechText>
                   </label>
                   <input
                     type="email"
@@ -815,12 +946,14 @@ const Home = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     className="w-full p-4 border-2 border-black rounded-2xl focus:ring-4 focus:ring-gray-300 focus:border-gray-800 transition-all duration-300 text-black placeholder-gray-500 font-mono"
-                    placeholder="your@email.com"
+                    placeholder={intl.formatMessage({ id: 'home.email_placeholder', defaultMessage: 'your@email.com' })}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-black mb-3 font-mono">
-                    <SpeechText>Your Message</SpeechText>
+                    <SpeechText>
+                      <FormattedMessage id="home.your_message" defaultMessage="Your Message" />
+                    </SpeechText>
                   </label>
                   <textarea
                     value={message}
@@ -828,7 +961,7 @@ const Home = () => {
                     required
                     rows={6}
                     className="w-full p-4 border-2 border-black rounded-2xl focus:ring-4 focus:ring-gray-300 focus:border-gray-800 transition-all duration-300 text-black placeholder-gray-500 resize-none font-mono"
-                    placeholder="How can we help you?"
+                    placeholder={intl.formatMessage({ id: 'home.message_placeholder', defaultMessage: 'How can we help you?' })}
                   />
                 </div>
                 <motion.button
@@ -842,7 +975,12 @@ const Home = () => {
                   whileHover={!isSubmitting ? { scale: 1.02 } : {}}
                   whileTap={!isSubmitting ? { scale: 0.98 } : {}}
                 >
-                  <SpeechText>{isSubmitting ? 'Sending...' : 'Send Message'}</SpeechText>
+                  <SpeechText>
+                    <FormattedMessage 
+                      id={isSubmitting ? "home.sending" : "home.send_message"} 
+                      defaultMessage={isSubmitting ? 'Sending...' : 'Send Message'} 
+                    />
+                  </SpeechText>
                 </motion.button>
               </form>
             </motion.div>
@@ -850,7 +988,9 @@ const Home = () => {
             <motion.div variants={itemVariants} className="space-y-8">
               <div className="bg-gray-100 p-10 rounded-3xl h-full border-2 border-black shadow-lg">
                 <h3 className="text-2xl font-bold text-black mb-8 font-mono">
-                  <SpeechText>Contact Information</SpeechText>
+                  <SpeechText>
+                    <FormattedMessage id="home.contact_information" defaultMessage="Contact Information" />
+                  </SpeechText>
                 </h3>
                 <div className="space-y-8">
                   <motion.div 
@@ -863,7 +1003,9 @@ const Home = () => {
                     </div>
                     <div>
                       <h4 className="text-lg font-bold text-black mb-2 font-mono">
-                        <SpeechText>Email</SpeechText>
+                        <SpeechText>
+                          <FormattedMessage id="home.email" defaultMessage="Email" />
+                        </SpeechText>
                       </h4>
                       <p className="text-gray-700 text-lg font-mono">contact@neurogamehub.com</p>
                     </div>
@@ -878,7 +1020,9 @@ const Home = () => {
                     </div>
                     <div>
                       <h4 className="text-lg font-bold text-black mb-2 font-mono">
-                        <SpeechText>Phone</SpeechText>
+                        <SpeechText>
+                          <FormattedMessage id="home.phone" defaultMessage="Phone" />
+                        </SpeechText>
                       </h4>
                       <p className="text-gray-700 text-lg font-mono">+1 (555) 123-4567</p>
                     </div>
@@ -893,7 +1037,9 @@ const Home = () => {
                     </div>
                     <div>
                       <h4 className="text-lg font-bold text-black mb-2 font-mono">
-                        <SpeechText>Address</SpeechText>
+                        <SpeechText>
+                          <FormattedMessage id="home.address" defaultMessage="Address" />
+                        </SpeechText>
                       </h4>
                       <p className="text-gray-700 text-lg font-mono">123 Gaming Street, Tech City</p>
                     </div>
@@ -904,8 +1050,6 @@ const Home = () => {
           </motion.section>
         </div>
       </main>
-
-   
 
       {/* Popups */}
       <AnimatePresence>
@@ -923,11 +1067,17 @@ const Home = () => {
               exit={{ scale: 0.9 }}
             >
               <h2 className="text-2xl font-bold text-black mb-4 font-mono">
-                <SpeechText>Welcome, {user.displayName || 'User'}!</SpeechText>
+                <SpeechText>
+                  <FormattedMessage 
+                    id="home.welcome_user" 
+                    defaultMessage="Welcome, {userName}!" 
+                    values={{ userName: user.displayName || 'User' }}
+                  />
+                </SpeechText>
               </h2>
               <p className="text-gray-700 mb-6 font-mono">
                 <SpeechText>
-                  We're excited to have you join our community of learners and gamers.
+                  <FormattedMessage id="home.excited_to_have_you" defaultMessage="We're excited to have you join our community of learners and gamers." />
                 </SpeechText>
               </p>
               <motion.button
@@ -935,7 +1085,9 @@ const Home = () => {
                 className="px-6 py-2 bg-black text-white rounded-lg font-bold hover:bg-gray-800 font-mono"
                 whileHover={{ scale: 1.05 }}
               >
-                <SpeechText>Get Started</SpeechText>
+                <SpeechText>
+                  <FormattedMessage id="common.get_started" defaultMessage="Get Started" />
+                </SpeechText>
               </motion.button>
             </motion.div>
           </motion.div>
@@ -966,13 +1118,21 @@ const Home = () => {
                 )}
               </div>
               <h2 className="text-2xl font-bold mb-4 text-black font-mono">
-                <SpeechText>{submitStatus === 'success' ? 'Message Sent!' : 'Error Sending Message'}</SpeechText>
+                <SpeechText>
+                  <FormattedMessage 
+                    id={submitStatus === 'success' ? 'home.message_sent' : 'home.error_sending'} 
+                    defaultMessage={submitStatus === 'success' ? 'Message Sent!' : 'Error Sending Message'} 
+                  />
+                </SpeechText>
               </h2>
               <p className="text-gray-700 mb-6 font-mono">
                 <SpeechText>
-                  {submitStatus === 'success' 
-                    ? 'We have received your message and will get back to you soon.' 
-                    : 'There was an error sending your message. Please try again.'}
+                  <FormattedMessage 
+                    id={submitStatus === 'success' ? 'home.message_received' : 'home.message_error'} 
+                    defaultMessage={submitStatus === 'success' 
+                      ? 'We have received your message and will get back to you soon.' 
+                      : 'There was an error sending your message. Please try again.'} 
+                  />
                 </SpeechText>
               </p>
               <motion.button
@@ -980,7 +1140,9 @@ const Home = () => {
                 className="px-6 py-2 rounded-lg font-bold bg-black text-white hover:bg-gray-800 font-mono"
                 whileHover={{ scale: 1.05 }}
               >
-                <SpeechText>Close</SpeechText>
+                <SpeechText>
+                  <FormattedMessage id="home.close" defaultMessage="Close" />
+                </SpeechText>
               </motion.button>
             </motion.div>
           </motion.div>

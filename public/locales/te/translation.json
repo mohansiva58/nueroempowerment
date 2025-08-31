@@ -1,0 +1,13 @@
+{
+  "daily.filter_by_type": "రకం ద్వారా వడపోత",
+  "daily.all": "అన్ని",
+  "daily.work": "పని",
+  "daily.personal": "వ్యక్తిగత",
+  "daily.learning": "చదువు",
+  "daily.title": "రోజువారీ కార్యకలాపాలు",
+  "daily.completed": "పూర్తి",
+  "daily.pending": "పెండింగ్",
+  "daily.low_priority": "తక్కువ ప్రాధాన్యత",
+  "daily.medium_priority": "మధ్యస్థ ప్రాధాన్యత",
+  "daily.high_priority": "అత్యధిక ప్రాధాన్యత"
+}

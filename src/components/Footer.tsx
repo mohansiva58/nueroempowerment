@@ -1,7 +1,9 @@
 import React from 'react';
 import { Heart, Brain, Mail, Phone } from 'lucide-react';
+import { FormattedMessage, useIntl } from 'react-intl';
 
 const Footer = () => {
+  const intl = useIntl();
   return (
     <>
       <footer className="bg-white text-gray-900 border-t border-gray-200">
@@ -11,23 +13,30 @@ const Footer = () => {
             <div>
               <div className="flex items-center space-x-3 mb-6 animate-slide-up">
                 <Brain className="h-8 w-8 text-indigo-600 animate-pulse" />
-                <span className="font-bold text-2xl text-gray-900">NeuroHub</span>
+                <span className="font-bold text-2xl text-gray-900">
+                  <FormattedMessage id="footer.brand" defaultMessage="NeuroHub" />
+                </span>
               </div>
               <p className="text-gray-600 leading-relaxed">
-                Empowering neurodivergent individuals through inclusive technology and community support.
+                <FormattedMessage 
+                  id="footer.description" 
+                  defaultMessage="Empowering neurodivergent individuals through inclusive technology and community support." 
+                />
               </p>
             </div>
 
             {/* Quick Links */}
             <div>
-              <h3 className="font-semibold text-xl text-gray-900 mb-6">Quick Links</h3>
+              <h3 className="font-semibold text-xl text-gray-900 mb-6">
+                <FormattedMessage id="footer.quick_links" defaultMessage="Quick Links" />
+              </h3>
               <ul className="space-y-4">
                 <li className="animate-slide-up delay-100">
                   <a
                     href="/about"
                     className="text-gray-600 hover:text-indigo-600 transition-colors duration-200"
                   >
-                    About Us
+                    <FormattedMessage id="footer.about_us" defaultMessage="About Us" />
                   </a>
                 </li>
                 <li className="animate-slide-up delay-200">
@@ -35,7 +44,7 @@ const Footer = () => {
                     href="/contact"
                     className="text-gray-600 hover:text-indigo-600 transition-colors duration-200"
                   >
-                    Contact
+                    <FormattedMessage id="footer.contact" defaultMessage="Contact" />
                   </a>
                 </li>
                 <li className="animate-slide-up delay-300">
@@ -43,7 +52,7 @@ const Footer = () => {
                     href="/privacy"
                     className="text-gray-600 hover:text-indigo-600 transition-colors duration-200"
                   >
-                    Privacy Policy
+                    <FormattedMessage id="footer.privacy_policy" defaultMessage="Privacy Policy" />
                   </a>
                 </li>
                 <li className="animate-slide-up delay-400">
@@ -51,7 +60,7 @@ const Footer = () => {
                     href="/terms"
                     className="text-gray-600 hover:text-indigo-600 transition-colors duration-200"
                   >
-                    Terms of Service
+                    <FormattedMessage id="footer.terms_of_service" defaultMessage="Terms of Service" />
                   </a>
                 </li>
               </ul>
@@ -59,7 +68,9 @@ const Footer = () => {
 
             {/* Contact Us */}
             <div>
-              <h3 className="font-semibold text-xl text-gray-900 mb-6">Contact Us</h3>
+              <h3 className="font-semibold text-xl text-gray-900 mb-6">
+                <FormattedMessage id="footer.contact_us" defaultMessage="Contact Us" />
+              </h3>
               <ul className="space-y-4">
                 <li className="flex items-center space-x-3 animate-slide-up delay-100">
                   <Mail className="h-5 w-5 text-indigo-600 animate-bounce-slow" />
@@ -67,7 +78,7 @@ const Footer = () => {
                     href="mailto:support@neurohub.com"
                     className="text-gray-600 hover:text-indigo-600 transition-colors duration-200"
                   >
-                    sujayss149@gmail.com
+                    contact@neurogamehub.com
                   </a>
                 </li>
                 <li className="flex items-center space-x-3 animate-slide-up delay-200">
@@ -79,18 +90,20 @@ const Footer = () => {
 
             {/* Newsletter */}
             <div>
-              <h3 className="font-semibold text-xl text-gray-900 mb-6">Newsletter</h3>
+              <h3 className="font-semibold text-xl text-gray-900 mb-6">
+                <FormattedMessage id="footer.newsletter" defaultMessage="Newsletter" />
+              </h3>
               <form className="space-y-4">
                 <input
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder={intl.formatMessage({ id: 'footer.email_placeholder', defaultMessage: 'Enter your email' })}
                   className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors duration-200 animate-slide-up delay-100"
                 />
                 <button
                   type="submit"
                   className="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all duration-200 font-medium shadow-md animate-slide-up delay-200"
                 >
-                  Subscribe
+                  <FormattedMessage id="footer.subscribe" defaultMessage="Subscribe" />
                 </button>
               </form>
             </div>
@@ -100,7 +113,13 @@ const Footer = () => {
           <div className="mt-12 pt-8 border-t border-gray-200 text-center relative">
             <div className="scrolling-text">
               <p className="text-gray-600 text-sm flex items-center justify-center">
-                Made with <Heart className="h-4 w-4 mx-1 text-red-500 animate-pulse" /> for the neurodivergent community
+                <FormattedMessage 
+                  id="footer.made_with_love" 
+                  defaultMessage="Made with {heart} for the neurodivergent community"
+                  values={{
+                    heart: <Heart className="h-4 w-4 mx-1 text-red-500 animate-pulse" />
+                  }}
+                />
               </p>
             </div>
           </div>

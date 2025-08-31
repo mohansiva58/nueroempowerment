@@ -16,7 +16,7 @@ import { getFirestore, doc, setDoc } from 'firebase/firestore';
 import { useAuth } from './AuthContext';
 
 // Log all environment variables for debugging
-console.log('All environment variables:', import.meta.env);
+//console.log('All environment variables:', import.meta.env);
 
 // Firebase Configuration using Vite environment variables
 const firebaseConfig = {
@@ -31,9 +31,9 @@ const firebaseConfig = {
 };
 
 // Log the config to debug
-console.log('Firebase Config:', firebaseConfig);
+//console.log('Firebase Config:', firebaseConfig);
 if (!firebaseConfig.apiKey) {
-  console.error('API Key is missing or undefined! Check your .env file and VITE_FIREBASE_API_KEY variable.');
+  //console.error('API Key is missing or undefined! Check your .env file and VITE_FIREBASE_API_KEY variable.');
 }
 
 // Initialize Firebase
@@ -114,7 +114,7 @@ const Login: React.FC<AuthPopupProps> = ({ isOpen, onClose }) => {
         createdAt: new Date(),
       });
     } catch (err) {
-      console.error('Error saving user to Firestore', err);
+     // console.error('Error saving user to Firestore', err);
     }
   };
 

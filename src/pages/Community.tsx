@@ -1,13 +1,16 @@
-/* eslint-disable react-hooks/exhaustive-deps */
+﻿/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { FormattedMessage } from 'react-intl';
 import { 
   Send, Smile, Search, Bell, User, MessageSquare, Users, Save, 
   ArrowLeft, LogOut, Upload, Home, PlusCircle, Heart, Share2, 
   MoreHorizontal, Bookmark, ThumbsUp, MessageCircle, Globe, 
-  Hash, AtSign, Link, Image as ImageIcon, Video, FileText 
+  Hash, AtSign, Link, Image as ImageIcon, Video, FileText,
+  Sparkles, TrendingUp, UserPlus, Award, Zap, Star, Filter,
+  Calendar, Clock, Eye, Edit, Settings, ChevronDown, Play
 } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import { useAuth } from '../pages/AuthContext';
@@ -20,42 +23,59 @@ import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage
 import { auth, rtdb, storage } from './firebase'; // Import from firebase.ts
 import { signOut } from 'firebase/auth';
 
-// Custom CSS for animations
+
+// Modern Community Platform Styles
 const style = document.createElement('style');
 style.textContent = `
-  @keyframes blob {
-    0% { transform: translate(0px, 0px) scale(1); }
-    33% { transform: translate(30px, -50px) scale(1.1); }
-    66% { transform: translate(-20px, 20px) scale(0.9); }
-    100% { transform: translate(0px, 0px) scale(1); }
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    33% { transform: translateY(-10px) rotate(1deg); }
+    66% { transform: translateY(5px) rotate(-1deg); }
   }
-  .animate-blob {
-    animation: blob 7s infinite;
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.5); }
+    50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.8), 0 0 30px rgba(59, 130, 246, 0.3); }
   }
-  .animation-delay-2000 {
-    animation-delay: 2s;
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
   }
-  .animation-delay-4000 {
-    animation-delay: 4s;
+  .float-animation { animation: float 6s ease-in-out infinite; }
+  .pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+  .shimmer-effect { 
+    position: relative; 
+    overflow: hidden;
   }
-  .glassmorphism {
-    backdrop-filter: blur(16px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
-    background-color: rgba(255, 255, 255, 0.85);
-    border: 1px solid rgba(209, 213, 219, 0.3);
+  .shimmer-effect::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    transform: translateX(-100%);
+    animation: shimmer 1.5s infinite;
   }
-  .text-gradient {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+  .gradient-border {
+    background: linear-gradient(145deg, #667eea, #764ba2, #f093fb, #f5576c);
+    background-size: 300% 300%;
+    animation: gradient-shift 3s ease infinite;
   }
-  .card-hover {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  @keyframes gradient-shift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
   }
-  .card-hover:hover {
-    transform: translateY(-8px) scale(1.02);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  .glass-effect {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  .neo-shadow {
+    box-shadow: 8px 8px 16px rgba(163, 177, 198, 0.6), -8px -8px 16px rgba(255, 255, 255, 0.8);
+  }
+  .inner-shadow {
+    box-shadow: inset 2px 2px 4px rgba(163, 177, 198, 0.6), inset -2px -2px 4px rgba(255, 255, 255, 0.8);
   }
 `;
 document.head.appendChild(style);
@@ -134,6 +154,7 @@ const getTimeAgo = (timestamp: number): string => {
 };
 
 const SocialPlatform = () => {
+  
   const { user } = useAuth();
   const navigate = useNavigate();
   const [posts, setPosts] = useState<Post[]>([]);
@@ -528,12 +549,12 @@ const SocialPlatform = () => {
   if (!user) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-100">
-        <p className="text-lg text-gray-900">Please log in to access the platform</p>
+        <p className="text-lg text-gray-900">{"Please log in to access the platform"}</p>
         <button 
           onClick={() => navigate('/login')} 
           className="ml-4 p-2 bg-blue-600 text-white rounded-full"
         >
-          Login
+          {"Login"}
         </button>
       </div>
     );
@@ -560,15 +581,18 @@ const SocialPlatform = () => {
               whileHover={{ scale: 1.05 }}
               className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
             >
-              NueroConnect
+              <FormattedMessage id="community.title" defaultMessage="NeuroConnect" />
             </motion.h1>
             <div className="relative hidden md:block">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search amazing content..."
+                placeholder=""
                 className="pl-10 pr-4 py-2 bg-white/70 backdrop-blur-sm border border-white/30 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white w-72 transition-all duration-300"
               />
+              <div className="absolute inset-0 flex items-center pl-10 pr-4 pointer-events-none">
+                <FormattedMessage id="community.search_placeholder" defaultMessage="Search amazing content..." />
+              </div>
             </div>
           </div>
           
@@ -584,7 +608,9 @@ const SocialPlatform = () => {
               }`}
             >
               <Home className="w-5 h-5" />
-              <span className="text-xs mt-1 font-medium">Home</span>
+              <span className="text-xs mt-1 font-medium">
+                <FormattedMessage id="navbar.home" defaultMessage="Home" />
+              </span>
             </motion.button>
             <motion.button 
               whileHover={{ scale: 1.1, y: -2 }}
@@ -597,7 +623,9 @@ const SocialPlatform = () => {
               }`}
             >
               <Bell className="w-5 h-5" />
-              <span className="text-xs mt-1 font-medium">Notifications</span>
+              <span className="text-xs mt-1 font-medium">
+                <FormattedMessage id="community.notifications" defaultMessage="Notifications" />
+              </span>
               {notifications.filter(n => !n.read).length > 0 && (
                 <motion.span 
                   initial={{ scale: 0 }}
@@ -607,7 +635,7 @@ const SocialPlatform = () => {
                   {notifications.filter(n => !n.read).length}
                 </motion.span>
               )}
-            </motion.button>
+            </motion.button>  
           </nav>
           
           <div className="flex items-center space-x-4">
@@ -618,7 +646,9 @@ const SocialPlatform = () => {
               className="hidden md:flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-full hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg font-medium"
             >
               <PlusCircle className="w-4 h-4" />
-              <span>Create</span>
+              <span>
+                <FormattedMessage id="community.create_post" defaultMessage="Create Post" />
+              </span>
             </motion.button>
             <motion.button 
               whileHover={{ scale: 1.05 }}
@@ -654,7 +684,7 @@ const SocialPlatform = () => {
               whileHover={{ scale: 1.05 }}
               className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
             >
-              ConnectPro
+              <FormattedMessage id="community.title" defaultMessage="NeuroConnect" />
             </motion.h1>
           </div>
           <div className="flex items-center space-x-4">
@@ -739,11 +769,13 @@ const SocialPlatform = () => {
                     <div className="flex-1">
                       <motion.textarea
                         whileFocus={{ scale: 1.02 }}
-                        placeholder="What's inspiring you today? Share your thoughts..."
                         className="w-full p-3 border-2 border-gray-100 focus:border-purple-300 rounded-xl resize-none transition-all duration-300 bg-gray-50/50 focus:bg-white focus:shadow-lg"
                         rows={3}
                         onClick={() => setCurrentTab('create')}
                       />
+                      <div className="absolute inset-0 flex items-start pt-3 pl-3 pointer-events-none text-gray-500">
+                        <FormattedMessage id="community.share_thoughts" defaultMessage="Share your thoughts..." />
+                      </div>
                       <div className="flex justify-between items-center pt-3">
                         <div className="flex space-x-2">
                           <motion.button 
@@ -775,7 +807,7 @@ const SocialPlatform = () => {
                           onClick={() => setCurrentTab('create')}
                           className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-medium hover:from-blue-600 hover:to-purple-600 transition-all duration-300 shadow-lg"
                         >
-                          Post
+                          <FormattedMessage id="community.post_message" defaultMessage="Post Message" />
                         </motion.button>
                       </div>
                     </div>
@@ -890,7 +922,9 @@ const SocialPlatform = () => {
                       }`}
                     >
                       <ThumbsUp className={`w-5 h-5 ${post.likes?.includes(user?.uid || '') ? 'fill-blue-600' : ''}`} />
-                      <span>Like</span>
+                      <span>
+                        <FormattedMessage id="community.like" defaultMessage="Like" />
+                      </span>
                     </motion.button>
                     <motion.button 
                       whileHover={{ scale: 1.05, backgroundColor: "rgb(236 253 245)" }}
@@ -901,7 +935,9 @@ const SocialPlatform = () => {
                       className="flex items-center justify-center space-x-2 py-3 rounded-xl text-gray-600 hover:text-green-600 font-medium transition-all duration-300"
                     >
                       <MessageCircle className="w-5 h-5" />
-                      <span>Comment</span>
+                      <span>
+                        <FormattedMessage id="community.comment" defaultMessage="Comment" />
+                      </span>
                     </motion.button>
                     <motion.button 
                       whileHover={{ scale: 1.05, backgroundColor: "rgb(254 243 199)" }}
@@ -910,7 +946,9 @@ const SocialPlatform = () => {
                       className="flex items-center justify-center space-x-2 py-3 rounded-xl text-gray-600 hover:text-yellow-600 font-medium transition-all duration-300"
                     >
                       <Share2 className="w-5 h-5" />
-                      <span>Share</span>
+                      <span>
+                        <FormattedMessage id="community.share" defaultMessage="Share" />
+                      </span>
                     </motion.button>
                   </div>
 
@@ -955,13 +993,13 @@ const SocialPlatform = () => {
                                     whileHover={{ scale: 1.05 }}
                                     className="hover:text-blue-500 font-medium"
                                   >
-                                    Like
+                                    <FormattedMessage id="community.like" defaultMessage="Like" />
                                   </motion.button>
                                   <motion.button 
                                     whileHover={{ scale: 1.05 }}
                                     className="hover:text-blue-500 font-medium"
                                   >
-                                    Reply
+                                    <FormattedMessage id="community.reply" defaultMessage="Reply" />
                                   </motion.button>
                                 </div>
                               </div>
@@ -987,12 +1025,17 @@ const SocialPlatform = () => {
                           <div className="flex-1 flex items-center bg-white/80 backdrop-blur-sm rounded-full px-4 py-2 border border-white/30 shadow-sm">
                             <input
                               type="text"
-                              placeholder="Write a thoughtful comment..."
+                              placeholder=""
                               className="flex-1 text-sm focus:outline-none bg-transparent"
                               value={newComment}
                               onChange={(e) => setNewComment(e.target.value)}
                               onKeyDown={(e) => e.key === 'Enter' && handleAddComment(post.id)}
                             />
+                            {!newComment && (
+                              <div className="absolute left-4 pointer-events-none text-gray-500 text-sm">
+                                <FormattedMessage id="community.share_thoughts" defaultMessage="Share your thoughts..." />
+                              </div>
+                            )}
                             <motion.button 
                               whileHover={{ scale: 1.1, rotate: 10 }}
                               whileTap={{ scale: 0.9 }}
@@ -1016,7 +1059,9 @@ const SocialPlatform = () => {
         {currentTab === 'messages' && (
           <div className="max-w-2xl mx-auto p-4 space-y-4">
             <div className="bg-white rounded-xl shadow p-4">
-              <h2 className="text-lg font-semibold mb-4">Messages</h2>
+              <h2 className="text-lg font-semibold mb-4">
+                <FormattedMessage id="community.discussions" defaultMessage="Messages" />
+              </h2>
               <div className="space-y-3">
                 {otherUsers.map((user) => (
                   <div 
@@ -1050,7 +1095,9 @@ const SocialPlatform = () => {
         {currentTab === 'notifications' && (
           <div className="max-w-2xl mx-auto p-4 space-y-4">
             <div className="bg-white rounded-xl shadow p-4">
-              <h2 className="text-lg font-semibold mb-4">Notifications</h2>
+              <h2 className="text-lg font-semibold mb-4">
+                <FormattedMessage id="community.notifications" defaultMessage="Notifications" />
+              </h2>
               {notifications.length > 0 ? (
                 <div className="space-y-4">
                   {notifications.map((notification) => (
@@ -1070,13 +1117,13 @@ const SocialPlatform = () => {
                       <div>
                         <p className="text-sm">
                           {notification.type === 'like' && (
-                            <span><span className="font-medium">{notification.fromUserName}</span> liked your post</span>
+                            <span><span className="font-medium">{notification.fromUserName}</span> <FormattedMessage id="community.liked_post" defaultMessage="liked your post" /></span>
                           )}
                           {notification.type === 'comment' && (
-                            <span><span className="font-medium">{notification.fromUserName}</span> commented on your post: "{notification.comment}..."</span>
+                            <span><span className="font-medium">{notification.fromUserName}</span> <FormattedMessage id="community.commented_post" defaultMessage="commented on your post" />: "{notification.comment}..."</span>
                           )}
                           {notification.type === 'share' && (
-                            <span><span className="font-medium">{notification.fromUserName}</span> shared your post</span>
+                            <span><span className="font-medium">{notification.fromUserName}</span> <FormattedMessage id="community.shared_post" defaultMessage="shared your post" /></span>
                           )}
                         </p>
                         <p className="text-xs text-gray-500">{getTimeAgo(notification.timestamp)}</p>
@@ -1087,7 +1134,7 @@ const SocialPlatform = () => {
               ) : (
                 <div className="flex flex-col items-center justify-center py-8">
                   <Bell className="w-12 h-12 text-gray-300" />
-                  <p className="text-gray-500 mt-2">No notifications yet</p>
+                  <p className="text-gray-500 mt-2">{"No notifications yet"}</p>
                 </div>
               )}
             </div>
@@ -1122,21 +1169,27 @@ const SocialPlatform = () => {
                     className="px-4 py-2 bg-red-500 text-white rounded-full text-sm flex items-center space-x-1"
                   >
                     <LogOut className="w-4 h-4" />
-                    <span>Logout</span>
+                    <span>
+                      <FormattedMessage id="community.logout" defaultMessage="Logout" />
+                    </span>
                   </button>
                 </div>
               </div>
             </div>
 
             <div className="bg-white rounded-xl shadow p-4 space-y-4">
-              <h3 className="font-semibold">About</h3>
-              <p className="text-gray-700">{profileData.description || 'No description provided.'}</p>
+              <h3 className="font-semibold">
+                <FormattedMessage id="community.about" defaultMessage="About" />
+              </h3>
+              <p className="text-gray-700">{profileData.description || "No description provided."}</p>
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <Globe className="w-4 h-4" />
                 <span>Indonesia</span>
               </div>
               <div className="pt-4 border-t border-gray-100">
-                <h3 className="font-semibold">Connections</h3>
+                <h3 className="font-semibold">
+                  <FormattedMessage id="community.connections" defaultMessage="Connections" />
+                </h3>
                 <div className="flex flex-wrap gap-3 mt-2">
                   {otherUsers.slice(0, 6).map((user) => (
                     <div key={user.uid} className="flex flex-col items-center">
@@ -1164,7 +1217,7 @@ const SocialPlatform = () => {
             </div>
 
             <div className="bg-white rounded-xl shadow p-4 space-y-4">
-              <h3 className="font-semibold">Your Posts</h3>
+              <h3 className="font-semibold">{"Your Posts"}</h3>
               {posts.filter(p => p.authorId === user?.uid).length > 0 ? (
                 posts
                   .filter(p => p.authorId === user?.uid)
@@ -1190,16 +1243,18 @@ const SocialPlatform = () => {
                       )}
                       <div className="flex items-center justify-between mt-2 text-sm text-gray-500">
                         <div className="flex items-center space-x-4">
-                          <span>{post.likes?.length || 0} likes</span>
-                          <span>{Object.keys(post.comments).length} comments</span>
-                          <span>{post.shares} shares</span>
+                          <span>{post.likes?.length || 0} <FormattedMessage id="community.likes" defaultMessage="likes" /></span>
+                          <span>{Object.keys(post.comments).length} <FormattedMessage id="community.comments" defaultMessage="comments" /></span>
+                          <span>{post.shares} <FormattedMessage id="community.shares" defaultMessage="shares" /></span>
                         </div>
                         <span>{getTimeAgo(post.timestamp)}</span>
                       </div>
                     </div>
                   ))
               ) : (
-                <p className="text-gray-500 text-center py-4">You haven't posted anything yet.</p>
+                <p className="text-gray-500 text-center py-4">
+                  <FormattedMessage id="community.no_posts_yet" defaultMessage="You haven't posted anything yet." />
+                </p>
               )}
             </div>
           </div>
@@ -1209,7 +1264,7 @@ const SocialPlatform = () => {
           <div className="max-w-2xl mx-auto p-4">
             <div className="bg-white rounded-xl shadow p-4">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold">Create Post</h2>
+                <h2 className="text-lg font-semibold">{"Create Post"}</h2>
                 <button 
                   onClick={() => setCurrentTab('feed')}
                   className="text-gray-500 hover:text-gray-700"
@@ -1232,12 +1287,17 @@ const SocialPlatform = () => {
                 )}
                 <div className="flex-1">
                   <textarea
-                    placeholder="What's on your mind?"
+                    placeholder=""
                     className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none"
                     rows={4}
                     value={newPostContent}
                     onChange={(e) => setNewPostContent(e.target.value)}
                   />
+                  {!newPostContent && (
+                    <div className="absolute top-3 left-3 pointer-events-none text-gray-500">
+                      <FormattedMessage id="community.whats_on_mind" defaultMessage="What's on your mind?" />
+                    </div>
+                  )}
                   
                   {previewUrl && (
                     <div className="mt-3 relative">
@@ -1277,7 +1337,9 @@ const SocialPlatform = () => {
                         className="px-4 py-2 bg-blue-600 text-white rounded-full text-sm flex items-center space-x-1"
                       >
                         <Send className="w-4 h-4" />
-                        <span>Post</span>
+                        <span>
+                          <FormattedMessage id="community.post_message" defaultMessage="Post Message" />
+                        </span>
                       </button>
                     </div>
                   </div>
@@ -1292,3 +1354,4 @@ const SocialPlatform = () => {
 };
 
 export default SocialPlatform;
+

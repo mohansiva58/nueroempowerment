@@ -2,8 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, CheckCircle, Clock, BookOpen, PlusCircle, Trash2, Edit2, Target, Star, Trophy, Flame, TrendingUp, ChevronDown } from 'lucide-react';
 import { SpeechText } from '../components/speach'; // Fixed typo
-import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { db } from './firebase';
 import { useAuth } from './AuthContext';
+import { FormattedMessage, useIntl } from 'react-intl';
 
 interface Task {
   id: string;
@@ -17,6 +19,7 @@ interface Task {
 }
 
 const Daily: React.FC = () => {
+  const intl = useIntl();
   const [completedTasks, setCompletedTasks] = useState<string[]>([]);
   const [dailyTasks, setDailyTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState<Task>({
@@ -33,7 +36,6 @@ const Daily: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<string>('All'); // New filter for completion status
   const [editTask, setEditTask] = useState<Task | null>(null);
   const { user } = useAuth();
-  const db = getFirestore();
 
   const fetchTasks = useCallback(async () => {
     if (!user) return;
@@ -48,7 +50,7 @@ const Daily: React.FC = () => {
     } catch (error) {
       console.error('Error fetching tasks:', error);
     }
-  }, [user, db]);
+  }, [user]);
 
   useEffect(() => {
     fetchTasks();
@@ -303,7 +305,7 @@ const Daily: React.FC = () => {
                 <div>
                   <SpeechText>
                     <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">
-                      Daily Activities
+                      <FormattedMessage id="daily.title" defaultMessage="Daily Activities" />
                     </h1>
                   </SpeechText>
                   <SpeechText>
@@ -367,17 +369,27 @@ const Daily: React.FC = () => {
               <div className="flex flex-wrap gap-4">
                 {/* Type Dropdown */}
                 <div className="relative">
-                  <label className="block text-sm font-medium text-gray-600 mb-2">Type:</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-2">
+                    <FormattedMessage id="daily.filter_by_type" defaultMessage="Type:" />
+                  </label>
                   <div className="relative">
                     <select
                       value={filterType}
                       onChange={(e) => setFilterType(e.target.value)}
                       className="px-4 py-2 pr-10 rounded-full font-medium bg-white/80 text-gray-700 border border-gray-200 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all appearance-none min-w-[120px]"
                     >
-                      <option value="All">All</option>
-                      <option value="Work">Work</option>
-                      <option value="Personal">Personal</option>
-                      <option value="Learning">Learning</option>
+                      <option value="All">
+                        <FormattedMessage id="daily.all" defaultMessage="All" />
+                      </option>
+                      <option value="Work">
+                        <FormattedMessage id="daily.work" defaultMessage="Work" />
+                      </option>
+                      <option value="Personal">
+                        <FormattedMessage id="daily.personal" defaultMessage="Personal" />
+                      </option>
+                      <option value="Learning">
+                        <FormattedMessage id="daily.learning" defaultMessage="Learning" />
+                      </option>
                     </select>
                     <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                   </div>
@@ -385,16 +397,24 @@ const Daily: React.FC = () => {
                 
                 {/* Status Dropdown */}
                 <div className="relative">
-                  <label className="block text-sm font-medium text-gray-600 mb-2">Status:</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-2">
+                    <FormattedMessage id="daily.filter_by_status" defaultMessage="Status:" />
+                  </label>
                   <div className="relative">
                     <select
                       value={filterStatus}
                       onChange={(e) => setFilterStatus(e.target.value)}
                       className="px-4 py-2 pr-10 rounded-full font-medium bg-white/80 text-gray-700 border border-gray-200 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-all appearance-none min-w-[140px]"
                     >
-                      <option value="All">📋 All</option>
-                      <option value="Pending">⏳ Pending</option>
-                      <option value="Completed">✅ Completed</option>
+                      <option value="All">
+                        📋 <FormattedMessage id="daily.all" defaultMessage="All" />
+                      </option>
+                      <option value="Pending">
+                        ⏳ <FormattedMessage id="daily.pending" defaultMessage="Pending" />
+                      </option>
+                      <option value="Completed">
+                        ✅ <FormattedMessage id="daily.completed" defaultMessage="Completed" />
+                      </option>
                     </select>
                     <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                   </div>
@@ -519,7 +539,10 @@ const Daily: React.FC = () => {
                             task.priority === 'Medium' ? 'bg-yellow-200 text-yellow-800' :
                             'bg-green-200 text-green-800'
                           }`}>
-                            {task.priority} Priority
+                            <FormattedMessage 
+                              id={`daily.${task.priority.toLowerCase()}_priority`} 
+                              defaultMessage={`${task.priority} Priority`} 
+                            />
                           </div>
                           <div className="flex items-center space-x-1 bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
                             <SpeechText><span>{task.reminderTime}</span></SpeechText>
@@ -641,7 +664,10 @@ const Daily: React.FC = () => {
               </motion.div>
               <SpeechText>
                 <h2 className="text-2xl font-bold text-gray-800">
-                  {editTask ? 'Edit Task' : 'Create New Task'}
+                  <FormattedMessage 
+                    id={editTask ? 'daily.edit_task' : 'daily.create_new_task'} 
+                    defaultMessage={editTask ? 'Edit Task' : 'Create New Task'} 
+                  />
                 </h2>
               </SpeechText>
             </div>
@@ -655,7 +681,10 @@ const Daily: React.FC = () => {
                 >
                   <input
                     className="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all bg-white/70 backdrop-blur-sm"
-                    placeholder="Task title..."
+                    placeholder={intl.formatMessage({ 
+                      id: 'daily.task_title', 
+                      defaultMessage: 'Task title...' 
+                    })}
                     value={newTask.title}
                     onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
                   />
@@ -670,7 +699,10 @@ const Daily: React.FC = () => {
                 >
                   <input
                     className="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all bg-white/70 backdrop-blur-sm"
-                    placeholder="e.g., 30 min, 2 hours..."
+                    placeholder={intl.formatMessage({ 
+                      id: 'daily.task_duration', 
+                      defaultMessage: 'e.g., 30 min, 2 hours...' 
+                    })}
                     value={newTask.duration}
                     onChange={(e) => setNewTask({ ...newTask, duration: e.target.value })}
                   />
@@ -711,12 +743,18 @@ const Daily: React.FC = () => {
                     value={newTask.priority}
                     onChange={(e) => setNewTask({ ...newTask, priority: e.target.value as Task['priority'] })}
                   >
-                    <option value="Low">🟢 Low Priority</option>
-                    <option value="Medium">🟡 Medium Priority</option>
-                    <option value="High">🔴 High Priority</option>
+                    <option value="Low">
+                      🟢 <FormattedMessage id="daily.low_priority" defaultMessage="Low Priority" />
+                    </option>
+                    <option value="Medium">
+                      🟡 <FormattedMessage id="daily.medium_priority" defaultMessage="Medium Priority" />
+                    </option>
+                    <option value="High">
+                      🔴 <FormattedMessage id="daily.high_priority" defaultMessage="High Priority" />
+                    </option>
                   </select>
                   <label className="absolute -top-2 left-3 bg-white px-2 text-xs font-medium text-gray-600">
-                    Priority
+                    <FormattedMessage id="daily.priority" defaultMessage="Priority" />
                   </label>
                 </motion.div>
               </div>
@@ -727,7 +765,10 @@ const Daily: React.FC = () => {
               >
                 <textarea
                   className="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all bg-white/70 backdrop-blur-sm resize-none"
-                  placeholder="Describe your task in detail..."
+                  placeholder={intl.formatMessage({ 
+                    id: 'daily.task_description', 
+                    defaultMessage: 'Describe your task in detail...' 
+                  })}
                   value={newTask.description}
                   onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
                   rows={3}
@@ -767,7 +808,13 @@ const Daily: React.FC = () => {
                 >
                   <PlusCircle className="w-5 h-5" />
                   <SpeechText>
-                    <span>{editTask ? 'Update Task' : 'Add Task'}</span>
+                    <span>
+                      {editTask ? (
+                        <FormattedMessage id="daily.update_task" defaultMessage="Update Task" />
+                      ) : (
+                        <FormattedMessage id="daily.add_task" defaultMessage="Add Task" />
+                      )}
+                    </span>
                   </SpeechText>
                 </motion.button>
 
@@ -781,7 +828,7 @@ const Daily: React.FC = () => {
                     }}
                     className="px-6 py-4 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-all"
                   >
-                    Cancel
+                    <FormattedMessage id="daily.cancel" defaultMessage="Cancel" />
                   </motion.button>
                 )}
               </div>

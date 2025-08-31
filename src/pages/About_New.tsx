@@ -2,8 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Brain, Users, BookOpen, MessageSquare, Settings } from 'lucide-react';
 import { FormattedMessage } from 'react-intl';
-import { SpeechText } from '../components/speach';
-import VoiceTester from '../components/VoiceTesterSimple';
 
 const About = () => {
   return (
@@ -16,9 +14,7 @@ const About = () => {
             <FormattedMessage id="about.title" defaultMessage="About NeuroHub" />
           </h1>
           <p className="mt-2 text-lg md:text-xl max-w-2xl mx-auto text-gray-600">
-            <SpeechText>
-              <FormattedMessage id="about.description" defaultMessage="Empowering neurodiverse individuals through learning, communication, and self-discovery." />
-            </SpeechText>
+            <FormattedMessage id="about.description" defaultMessage="Empowering neurodiverse individuals through learning, communication, and self-discovery." />
           </p>
         </div>
       </header>
@@ -32,12 +28,10 @@ const About = () => {
               <FormattedMessage id="about.our_mission" defaultMessage="Our Mission" />
             </h2>
             <p className="text-gray-700 leading-relaxed">
-              <SpeechText>
-                <FormattedMessage 
-                  id="about.our_mission_description" 
-                  defaultMessage="At NeuroHub, we're dedicated to creating an inclusive digital space where neurodiverse individuals—whether they have autism, ADHD, dyslexia, or other conditions—can thrive. Our mission is to provide tools and resources that improve daily life, foster personal growth, and celebrate the unique strengths of every mind." 
-                />
-              </SpeechText>
+              <FormattedMessage 
+                id="about.our_mission_description" 
+                defaultMessage="At NeuroHub, we're dedicated to creating an inclusive digital space where neurodiverse individuals—whether they have autism, ADHD, dyslexia, or other conditions—can thrive. Our mission is to provide tools and resources that improve daily life, foster personal growth, and celebrate the unique strengths of every mind." 
+              />
             </p>
           </div>
           <div className="md:w-1/2 order-1 md:order-2">
@@ -160,17 +154,6 @@ const About = () => {
           <Settings className="h-5 w-5 mr-2" />
           <FormattedMessage id="common.get_started" defaultMessage="Get Started" />
         </Link>
-      </section>
-
-      {/* Voice Tester Section - Debug Tool */}
-      <section className="bg-gray-50 dark:bg-gray-900 p-8 rounded-xl">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 text-center">
-          🔊 Voice Testing Tool
-        </h2>
-        <p className="text-gray-600 dark:text-gray-400 text-center mb-6">
-          Test the multi-language speech functionality and debug voice availability
-        </p>
-        <VoiceTester />
       </section>
 
       {/* Footer */}

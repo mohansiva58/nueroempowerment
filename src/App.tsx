@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, startTransition } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { LanguageProvider } from './contexts/LanguageContext';
+import { SpeechSettingsProvider } from './contexts/SpeechSettingsContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -32,11 +34,13 @@ function App() {
   }, []);
 
   return (
-    <AuthProvider>
-      <Router>
-        <div className="min-h-screen flex flex-col bg-neutral-50">
-          <Navbar />
-          <main className="flex-grow container mx-auto px-4 py-8">
+    <LanguageProvider>
+      <SpeechSettingsProvider>
+        <AuthProvider>
+          <Router>
+            <div className="min-h-screen flex flex-col bg-neutral-50">
+              <Navbar />
+              <main className="flex-grow container mx-auto px-4 py-8">
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/learning" element={<Learning />} />
@@ -66,6 +70,8 @@ function App() {
         </div>
       </Router>
     </AuthProvider>
+    </SpeechSettingsProvider>
+    </LanguageProvider>
   );
 }
 
