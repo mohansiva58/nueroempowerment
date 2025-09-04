@@ -15,7 +15,7 @@ const LANGUAGE_VOICE_MAP: Record<SupportedLanguage, string[]> = {
 const speakWithEnhancedBrowserTTS = async (text: string, language: string): Promise<boolean> => {
   return new Promise((resolve) => {
     if (!('speechSynthesis' in window)) {
-      console.warn('❌ Browser TTS not supported');
+     // console.warn('❌ Browser TTS not supported');
       resolve(false);
       return;
     }
@@ -28,7 +28,7 @@ const speakWithEnhancedBrowserTTS = async (text: string, language: string): Prom
 
     // Get available voices immediately (no retries for speed)
     const voices = synth.getVoices();
-    console.log(`🔍 Enhanced TTS: Looking for ${language} voice from ${voices.length} available voices`);
+    //console.log(`🔍 Enhanced TTS: Looking for ${language} voice from ${voices.length} available voices`);
 
     // Enhanced voice selection specifically optimized for Telugu
     const findBestVoice = (lang: string): SpeechSynthesisVoice | null => {
@@ -42,7 +42,7 @@ const speakWithEnhancedBrowserTTS = async (text: string, language: string): Prom
           v.name.toLowerCase().includes('telugu')
         );
         if (teluguVoice) {
-          console.log(`🇮🇳 Found Telugu voice: ${teluguVoice.name} (${teluguVoice.lang})`);
+          //console.log(`🇮🇳 Found Telugu voice: ${teluguVoice.name} (${teluguVoice.lang})`);
           return teluguVoice;
         }
 
@@ -54,7 +54,7 @@ const speakWithEnhancedBrowserTTS = async (text: string, language: string): Prom
         );
         if (indianVoices.length > 0) {
           const selectedVoice = indianVoices[0];
-          console.log(`🇮🇳 Using Indian English for Telugu: ${selectedVoice.name} (${selectedVoice.lang})`);
+         // console.log(`🇮🇳 Using Indian English for Telugu: ${selectedVoice.name} (${selectedVoice.lang})`);
           return selectedVoice;
         }
       }
@@ -64,14 +64,14 @@ const speakWithEnhancedBrowserTTS = async (text: string, language: string): Prom
         // Try exact match first
         let voice = voices.find(v => v.lang.toLowerCase() === langCode.toLowerCase());
         if (voice) {
-          console.log(`✅ Found exact match: ${voice.name} (${voice.lang})`);
+         // console.log(`✅ Found exact match: ${voice.name} (${voice.lang})`);
           return voice;
         }
         
         // Try partial match
         voice = voices.find(v => v.lang.toLowerCase().startsWith(langCode.toLowerCase()));
         if (voice) {
-          console.log(`✅ Found language match: ${voice.name} (${voice.lang})`);
+          //console.log(`✅ Found language match: ${voice.name} (${voice.lang})`);
           return voice;
         }
       }
@@ -83,9 +83,9 @@ const speakWithEnhancedBrowserTTS = async (text: string, language: string): Prom
     const finalVoice = selectedVoice || (voices.length > 0 ? (voices.find(v => v.default) || voices[0]) : null);
     
     if (finalVoice) {
-      console.log(`🎵 Enhanced TTS using: ${finalVoice.name} (${finalVoice.lang}) for ${language}`);
+      //console.log(`🎵 Enhanced TTS using: ${finalVoice.name} (${finalVoice.lang}) for ${language}`);
     } else {
-      console.warn(`⚠️ No voice available for ${language}, using system default`);
+     // console.warn(`⚠️ No voice available for ${language}, using system default`);
     }
 
     const utterance = new SpeechSynthesisUtterance(text);
@@ -117,24 +117,24 @@ const speakWithEnhancedBrowserTTS = async (text: string, language: string): Prom
     }
 
     utterance.onstart = () => {
-      console.log(`✅ Enhanced TTS started for ${language}`);
+      //console.log(`✅ Enhanced TTS started for ${language}`);
     };
 
     utterance.onend = () => {
-      console.log(`✅ Enhanced TTS completed for ${language}`);
+     // console.log(`✅ Enhanced TTS completed for ${language}`);
       resolve(true);
     };
 
     utterance.onerror = () => {
-      console.warn(`❌ Enhanced TTS failed for ${language}: interrupted`);
+     // console.warn(`❌ Enhanced TTS failed for ${language}: interrupted`);
       resolve(false);
     };
 
     try {
       synth.speak(utterance);
-      console.log(`📢 Enhanced TTS command sent for ${language}: "${text.substring(0, 30)}..."`);
+      //console.log(`📢 Enhanced TTS command sent for ${language}: "${text.substring(0, 30)}..."`);
     } catch {
-      console.error('❌ Failed to start enhanced TTS');
+     // console.error('❌ Failed to start enhanced TTS');
       resolve(false);
     }
   });
