@@ -21,20 +21,13 @@ const speakWithEnhancedBrowserTTS = async (text: string, language: string): Prom
     }
 
     const synth = window.speechSynthesis;
-    synth.cancel(); // Cancel any ongoing speech
+    // Only cancel if currently speaking to avoid unnecessary interruptions
+    if (synth.speaking) {
+      synth.cancel();
+    }
 
-    // Get available voices with retries for async voice loading
-    const loadVoicesWithRetry = (attempt = 0): SpeechSynthesisVoice[] => {
-      const voices = synth.getVoices();
-      if (voices.length === 0 && attempt < 3) {
-        // Sometimes voices need time to load, retry after a short delay
-        setTimeout(() => loadVoicesWithRetry(attempt + 1), 100);
-        return [];
-      }
-      return voices;
-    };
-
-    const voices = loadVoicesWithRetry();
+    // Get available voices immediately (no retries for speed)
+    const voices = synth.getVoices();
     console.log(`🔍 Enhanced TTS: Looking for ${language} voice from ${voices.length} available voices`);
 
     // Enhanced voice selection specifically optimized for Telugu
@@ -107,17 +100,17 @@ const speakWithEnhancedBrowserTTS = async (text: string, language: string): Prom
     
     switch (language) {
       case 'te':
-        utterance.rate = 0.85;  // Optimized speed for Telugu
+        utterance.rate = 1.2;  // Faster Telugu speech
         utterance.pitch = 1.0;
         utterance.volume = 1.0;
         break;
       case 'hi':
-        utterance.rate = 0.8;
+        utterance.rate = 1.1;  // Faster Hindi speech
         utterance.pitch = 1.1;
         utterance.volume = 0.9;
         break;
       default: // English
-        utterance.rate = 1.0;
+        utterance.rate = 1.3;  // Faster English speech
         utterance.pitch = 1.0;
         utterance.volume = 0.8;
         break;
@@ -132,16 +125,16 @@ const speakWithEnhancedBrowserTTS = async (text: string, language: string): Prom
       resolve(true);
     };
 
-    utterance.onerror = (event) => {
-      console.warn(`❌ Enhanced TTS failed for ${language}:`, event.error);
+    utterance.onerror = () => {
+      console.warn(`❌ Enhanced TTS failed for ${language}: interrupted`);
       resolve(false);
     };
 
     try {
       synth.speak(utterance);
       console.log(`📢 Enhanced TTS command sent for ${language}: "${text.substring(0, 30)}..."`);
-    } catch (error) {
-      console.error('❌ Failed to start enhanced TTS:', error);
+    } catch {
+      console.error('❌ Failed to start enhanced TTS');
       resolve(false);
     }
   });
@@ -156,7 +149,10 @@ const speakWithBrowserTTS = async (text: string, language: string): Promise<bool
     }
 
     const synth = window.speechSynthesis;
-    synth.cancel(); // Cancel any ongoing speech
+    // Only cancel if currently speaking to avoid interruptions
+    if (synth.speaking) {
+      synth.cancel();
+    }
 
     // Get available voices
     const voices = synth.getVoices();
@@ -193,17 +189,17 @@ const speakWithBrowserTTS = async (text: string, language: string): Promise<bool
     utterance.lang = langCodes[0];
     switch (language) {
       case 'te':
-        utterance.rate = 0.9;  // Increased speed for Telugu (was 0.7)
+        utterance.rate = 1.2;  // Faster Telugu speech
         utterance.pitch = 1.0;
         utterance.volume = 1.0;
         break;
       case 'hi':
-        utterance.rate = 0.8;
+        utterance.rate = 1.1;  // Faster Hindi speech
         utterance.pitch = 1.1;
         utterance.volume = 0.9;
         break;
       default: // English
-        utterance.rate = 1.0;
+        utterance.rate = 1.3;  // Faster English speech
         utterance.pitch = 1.0;
         utterance.volume = 0.8;
         break;
@@ -218,7 +214,7 @@ const speakWithBrowserTTS = async (text: string, language: string): Promise<bool
       resolve(true);
     };
 
-    utterance.onerror = (event) => {
+    utterance.onerror = () => {
      // console.warn(`❌ Browser TTS failed for ${language}:`, event.error);
       resolve(false);
     };
@@ -226,7 +222,7 @@ const speakWithBrowserTTS = async (text: string, language: string): Promise<bool
     try {
       synth.speak(utterance);
      // console.log(`📢 Browser TTS command sent for ${language}`);
-    } catch (error) {
+    } catch {
       //console.error('❌ Failed to start browser TTS:', error);
       resolve(false);
     }
@@ -278,8 +274,8 @@ export const useSpeech = () => {
     const targetLanguage = overrideLanguage || locale;
     // console.log(`\n🎙️ SPEECH REQUEST: "${text}" in language: ${targetLanguage}`);
 
-    // Stop any ongoing speech
-    if (speechRef.current) {
+    // Stop any ongoing speech only if actively speaking
+    if (speechRef.current && speechRef.current.speaking) {
       speechRef.current.cancel();
     }
 
@@ -302,7 +298,7 @@ export const useSpeech = () => {
           //console.log(`✅ TTS method ${i + 1} succeeded!`);
           break;
         }
-      } catch (error) {
+      } catch {
        // console.warn(`❌ TTS method ${i + 1} failed:`, error);
       }
     }

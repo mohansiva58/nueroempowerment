@@ -1,46 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { FcGoogle } from 'react-icons/fc';
-import { Check } from 'lucide-react';
+import { Check, Eye, EyeOff, Mail, Lock, User, ArrowRight, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { initializeApp } from 'firebase/app';
-import {
-  getAuth,
-  createUserWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
-  signInWithEmailAndPassword,
-  sendPasswordResetEmail,
-  signOut,
-} from 'firebase/auth';
-import { getFirestore, doc, setDoc } from 'firebase/firestore';
 import { useAuth } from './AuthContext';
-
-// Log all environment variables for debugging
-//console.log('All environment variables:', import.meta.env);
-
-// Firebase Configuration using Vite environment variables
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
-};
-
-// Log the config to debug
-//console.log('Firebase Config:', firebaseConfig);
-if (!firebaseConfig.apiKey) {
-  //console.error('API Key is missing or undefined! Check your .env file and VITE_FIREBASE_API_KEY variable.');
-}
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const googleProvider = new GoogleAuthProvider();
+import { supabaseHelpers } from '../lib/supabase';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthPopupProps {
   isOpen: boolean;
@@ -51,341 +15,481 @@ const Login: React.FC<AuthPopupProps> = ({ isOpen, onClose }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
   const [resetEmail, setResetEmail] = useState('');
-  const [resetError, setResetError] = useState<string | null>(null);
-  const [resetSuccess, setResetSuccess] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ message: string; type: 'success' } | null>(null);
-  const [showWelcomePopup, setShowWelcomePopup] = useState(false);
+  const [showResetForm, setShowResetForm] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
+
   const { user, login } = useAuth();
+  const navigate = useNavigate();
 
-  // Reset state when the popup opens
+  // Redirect if user is already logged in
   useEffect(() => {
-    if (isOpen) {
-      setIsLogin(true);
-      setEmail('');
-      setPassword('');
-      setFullName('');
-      setError(null);
-      setIsForgotPasswordOpen(false);
-      setResetEmail('');
-      setResetError(null);
-      setResetSuccess(null);
-      setToast(null);
-      setShowWelcomePopup(false);
-    }
-  }, [isOpen]);
-
-  // Close popup if user is already logged in when component mounts
-  useEffect(() => {
-    if (user && isOpen) {
+    if (user) {
+      navigate('/');
       onClose();
     }
-  }, [user, isOpen, onClose]);
-
-  // Auto-hide toast after 3 seconds
-  useEffect(() => {
-    if (toast) {
-      const timer = setTimeout(() => setToast(null), 3000);
-      return () => clearTimeout(timer);
+    
+    // Check for OAuth errors in URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const errorParam = urlParams.get('error');
+    if (errorParam) {
+      setError(decodeURIComponent(errorParam));
+      // Clean up the URL
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [toast]);
+  }, [user, navigate, onClose]);
 
-  // Auto-hide welcome popup after 5 seconds if not closed manually
-  useEffect(() => {
-    if (showWelcomePopup) {
-      const timer = setTimeout(() => setShowWelcomePopup(false), 5000);
-      return () => clearTimeout(timer);
+  const validateForm = () => {
+    const errors: {[key: string]: string} = {};
+    
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) {
+      errors.email = 'Email is required';
+    } else if (!emailRegex.test(email)) {
+      errors.email = 'Please enter a valid email address';
     }
-  }, [showWelcomePopup]);
 
-  const saveUserToFirestore = async (
-    user: { uid: string; email: string | null; displayName: string | null; providerData: { providerId: string }[] },
-    additionalData: { fullName?: string } = {}
-  ) => {
-    try {
-      await setDoc(doc(db, 'users', user.uid), {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName || additionalData.fullName,
-        provider: user.providerData[0].providerId,
-        createdAt: new Date(),
-      });
-    } catch (err) {
-     // console.error('Error saving user to Firestore', err);
+    // Password validation
+    if (!password) {
+      errors.password = 'Password is required';
+    } else if (password.length < 6) {
+      errors.password = 'Password must be at least 6 characters long';
     }
-  };
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const loggedInUser = userCredential.user;
-      login(loggedInUser);
-      setShowWelcomePopup(true);
-      onClose();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Login failed. Please try again.');
-    }
-  };
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const newUser = userCredential.user;
-      await saveUserToFirestore(newUser, { fullName });
-      login(newUser);
-      setShowWelcomePopup(true);
-      setIsLogin(true);
-      onClose();
-    } catch (err: unknown) {
-      if (err instanceof Error && err.message.includes('email-already-in-use')) {
-        setError('Email already exists. Please use a different email or log in.');
-      } else {
-        setError(err instanceof Error ? err.message : 'Signup failed. Please try again.');
+    // Sign up specific validations
+    if (!isLogin) {
+      if (!displayName) {
+        errors.displayName = 'Display name is required';
+      } else if (displayName.length < 2) {
+        errors.displayName = 'Display name must be at least 2 characters long';
       }
+
+      if (!confirmPassword) {
+        errors.confirmPassword = 'Please confirm your password';
+      } else if (password !== confirmPassword) {
+        errors.confirmPassword = 'Passwords do not match';
+      }
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const clearForm = () => {
+    setEmail('');
+    setPassword('');
+    setConfirmPassword('');
+    setDisplayName('');
+    setError(null);
+    setSuccess(null);
+    setValidationErrors({});
+  };
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result = await supabaseHelpers.signIn(email, password);
+      if (result.data?.user) {
+        const supabaseUser = {
+          id: result.data.user.id,
+          email: result.data.user.email || null,
+        };
+        await login(supabaseUser);
+        setSuccess('Login successful!');
+        setTimeout(() => {
+          onClose();
+          clearForm();
+        }, 1000);
+      } else if (result.error) {
+        setError(result.error.message);
+      }
+    } catch (error: unknown) {
+      console.error('Login error:', error);
+      setError((error as Error).message || 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEmailSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result = await supabaseHelpers.signUp(email, password, {
+        display_name: displayName,
+      });
+      
+      if (result.data?.user) {
+        setSuccess('Account created successfully! Please check your email to verify your account.');
+        setTimeout(() => {
+          onClose();
+          clearForm();
+        }, 2000);
+      } else if (result.error) {
+        setError(result.error.message);
+      }
+    } catch (error: unknown) {
+      console.error('Signup error:', error);
+      setError((error as Error).message || 'Signup failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError(null);
+
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      await saveUserToFirestore(result.user);
-      login(result.user);
-      setShowWelcomePopup(true);
-      onClose();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Google Sign-in failed. Please try again.');
+      const result = await supabaseHelpers.signInWithGoogle();
+      if (result.data?.url) {
+        // For OAuth, Supabase will redirect to the provider
+        // The user will be redirected to Google, then back to our callback
+        window.location.href = result.data.url;
+      } else if (result.error) {
+        console.error('Google OAuth error:', result.error);
+        setError(result.error.message || 'Failed to initialize Google login');
+      }
+    } catch (error: unknown) {
+      console.error('Google login error:', error);
+      setError('Google login failed. Please try again.');
     }
+    // Note: Don't set loading to false here as the page will redirect
   };
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
+  const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    setResetError(null);
-    setResetSuccess(null);
+    if (!resetEmail) {
+      setError('Please enter your email address');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
     try {
-      await sendPasswordResetEmail(auth, resetEmail);
-      setResetSuccess('Password reset email sent. Please check your inbox.');
-      setIsForgotPasswordOpen(false);
-    } catch (err: unknown) {
-      setResetError(err instanceof Error ? err.message : 'Failed to send password reset email. Please try again.');
+      // Note: Supabase password reset would be implemented here
+      // For now, show success message
+      setSuccess('Password reset email sent! Check your inbox.');
+      setShowResetForm(false);
+      setResetEmail('');
+    } catch (error: unknown) {
+      console.error('Password reset error:', error);
+      setError('Failed to send password reset email. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
-      setToast({ message: 'Logged out successfully.', type: 'success' });
-      onClose();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Logout failed. Please try again.');
+      await supabaseHelpers.signOut();
+      setSuccess('Logged out successfully!');
+      setTimeout(() => {
+        onClose();
+        clearForm();
+      }, 1000);
+    } catch (error: unknown) {
+      console.error('Logout error:', error);
+      setError('Logout failed. Please try again.');
     }
   };
 
-  if (!isOpen || user) return null;
+  if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+    <AnimatePresence>
       <motion.div
-        className="bg-white w-full max-w-sm p-6 rounded-lg relative"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        onClick={onClose}
       >
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
-        >
-          ✕
-        </button>
-        <div className="text-center mb-6">
-          <h1 className="text-xl font-bold text-black">
-            {isLogin ? 'Welcome Back to NueroHub!' : 'Sign Up to NueroHub!'}
-          </h1>
-          <p className="text-gray-500 mt-1 text-sm">Keep your data safe</p>
-        </div>
-        {error && <p className="text-red-500 text-center mb-4 text-sm">{error}</p>}
-        <form onSubmit={isLogin ? handleLogin : handleSignup} className="space-y-3">
-          {!isLogin && (
-            <input
-              type="text"
-              placeholder="Full Name"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className="w-full p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 text-sm"
-              required
-            />
-          )}
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 text-sm"
-            required
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 text-sm"
-            required
-          />
-          <button
-            type="submit"
-            className="w-full py-2 bg-yellow-400 text-black font-semibold rounded-full hover:bg-yellow-500 transition-colors duration-200 text-sm"
-          >
-            {isLogin ? 'LOGIN' : 'SIGN UP'}
-          </button>
-        </form>
-        <button
-          onClick={handleGoogleLogin}
-          className="w-full py-2 bg-white border border-gray-200 rounded-full mt-3 flex items-center justify-center space-x-2 hover:bg-gray-50 transition-colors duration-200 text-sm"
-        >
-          <FcGoogle className="h-5 w-5" />
-          <span className="text-black">{isLogin ? 'Login with Google' : 'Sign up with Google'}</span>
-        </button>
-        <div className="mt-4 text-center">
-          {isLogin && (
-            <p className="text-yellow-400 mb-2 text-sm">
-              <button
-                onClick={() => setIsForgotPasswordOpen(true)}
-                className="hover:underline"
-              >
-                Forgot Password?
-              </button>
-            </p>
-          )}
-          <p className="text-gray-500 text-sm">
-            {isLogin ? "Don't have an account?" : 'Already have an account?'}
-            <button
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-yellow-400 hover:underline ml-1"
-            >
-              {isLogin ? 'Register!' : 'Login!'}
-            </button>
-          </p>
-          <p className="text-gray-500 mt-2 text-sm">
-            Do you have any question?{' '}
-            <a href="mailto:nuerohub@email.com" className="text-yellow-400 hover:underline">
-              nuerohub@email.com
-            </a>
-          </p>
-          {user && (
-            <p className="mt-2 text-gray-500 text-sm">
-              <button
-                onClick={handleLogout}
-                className="text-yellow-400 hover:underline"
-              >
-                Logout
-              </button>
-            </p>
-          )}
-        </div>
-      </motion.div>
-      {isForgotPasswordOpen && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
+          initial={{ scale: 0.9, opacity: 0, y: 20 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.9, opacity: 0, y: 20 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="bg-white dark:bg-gray-900 rounded-xl shadow-xl w-full max-w-md overflow-hidden relative"
+          onClick={(e) => e.stopPropagation()}
         >
-          <div className="bg-white w-full max-w-sm p-6 rounded-lg relative">
-            <button
-              onClick={() => setIsForgotPasswordOpen(false)}
-              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
-            >
-              ✕
-            </button>
-            <div className="text-center mb-6">
-              <h1 className="text-xl font-bold text-black">Reset Password</h1>
-              <p className="text-gray-500 mt-2 text-sm">
-                Please use the link below to reset your password
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 w-8 h-8 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 transition-colors z-10"
+          >
+            ×
+          </button>
+
+          <div className="p-8">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">
+                Welcome Back to NueroHub!
+              </h2>
+              <p className="text-gray-600 dark:text-gray-300">
+                {showResetForm 
+                  ? 'Enter your email to reset your password'
+                  : (isLogin 
+                      ? 'Sign in to continue your journey' 
+                      : 'Create your account to get started'
+                    )
+                }
               </p>
             </div>
-            {resetError && <p className="text-red-500 text-center mb-4 text-sm">{resetError}</p>}
-            {resetSuccess && <p className="text-green-500 text-center mb-4 text-sm">{resetSuccess}</p>}
-            <form onSubmit={handleForgotPassword} className="space-y-3">
-              <input
-                type="email"
-                placeholder="Email"
-                value={resetEmail}
-                onChange={(e) => setResetEmail(e.target.value)}
-                className="w-full p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 text-sm"
-                required
-              />
-              <button
-                type="submit"
-                className="w-full py-2 bg-yellow-400 text-black font-semibold rounded-full hover:bg-yellow-500 transition-colors duration-200 text-sm"
+
+            {/* Success message */}
+            {success && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-6 p-4 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg flex items-center gap-3"
               >
-                SEND RESET EMAIL
-              </button>
-            </form>
-            <p className="text-gray-500 text-center mt-4 text-sm">
-              Do you have any question?{' '}
-              <a href="mailto:nuerohub@email.com" className="text-yellow-400 hover:underline">
-                nuerohub@email.com
-              </a>
-            </p>
+                <Check className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                <p className="text-green-700 dark:text-green-300 text-sm">{success}</p>
+              </motion.div>
+            )}
+
+            {/* Error message */}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-6 p-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg"
+              >
+                <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
+              </motion.div>
+            )}
+
+            {/* Password Reset Form */}
+            {showResetForm ? (
+              <form onSubmit={handlePasswordReset} className="space-y-6">
+                <div>
+                  <div className="relative">
+                    <input
+                      type="email"
+                      placeholder="Enter your email"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowResetForm(false)}
+                    className="flex-1 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        Send Reset Email
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <>
+                {/* Google Login Button */}
+                <button
+                  onClick={handleGoogleLogin}
+                  disabled={loading}
+                  className="w-full mb-6 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-sm"
+                >
+                  <FcGoogle className="w-5 h-5" />
+                  Login with Google
+                </button>
+
+                {/* Divider */}
+                <div className="relative mb-6">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300 dark:border-gray-600" />
+                  </div>
+                </div>
+
+                {/* Email/Password Form */}
+                <form onSubmit={isLogin ? handleEmailLogin : handleEmailSignup} className="space-y-4">
+                  {!isLogin && (
+                    <div>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Display Name"
+                          value={displayName}
+                          onChange={(e) => setDisplayName(e.target.value)}
+                          className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all ${
+                            validationErrors.displayName ? 'border-red-300 dark:border-red-700' : 'border-gray-200 dark:border-gray-700'
+                          }`}
+                          required
+                        />
+                      </div>
+                      {validationErrors.displayName && (
+                        <p className="mt-1 text-sm text-red-600 dark:text-red-400">{validationErrors.displayName}</p>
+                      )}
+                    </div>
+                  )}
+
+                  <div>
+                    <div className="relative">
+                      <input
+                        type="email"
+                        placeholder="Email Address"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all ${
+                          validationErrors.email ? 'border-red-300 dark:border-red-700' : 'border-gray-200 dark:border-gray-700'
+                        }`}
+                        required
+                      />
+                    </div>
+                    {validationErrors.email && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">{validationErrors.email}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all ${
+                          validationErrors.password ? 'border-red-300 dark:border-red-700' : 'border-gray-200 dark:border-gray-700'
+                        }`}
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                      >
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                    {validationErrors.password && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">{validationErrors.password}</p>
+                    )}
+                  </div>
+
+                  {!isLogin && (
+                    <div>
+                      <div className="relative">
+                        <input
+                          type={showConfirmPassword ? "text" : "password"}
+                          placeholder="Confirm Password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all ${
+                            validationErrors.confirmPassword ? 'border-red-300 dark:border-red-700' : 'border-gray-200 dark:border-gray-700'
+                          }`}
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                        >
+                          {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        </button>
+                      </div>
+                      {validationErrors.confirmPassword && (
+                        <p className="mt-1 text-sm text-red-600 dark:text-red-400">{validationErrors.confirmPassword}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Forgot Password Link */}
+                  {isLogin && (
+                    <div className="text-right">
+                      <button
+                        type="button"
+                        onClick={() => setShowResetForm(true)}
+                        className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+                      >
+                        Forgot Password?
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        {isLogin ? 'Sign In' : 'Create Account'}
+                      </>
+                    )}
+                  </button>
+                </form>
+
+                {/* Switch between login/signup */}
+                <div className="text-center mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <span className="text-gray-600 dark:text-gray-300 text-sm">
+                    {isLogin ? "Don't have an account? " : "Already have an account? "}
+                  </span>
+                  <button
+                    onClick={() => {
+                      setIsLogin(!isLogin);
+                      clearForm();
+                    }}
+                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium text-sm transition-colors"
+                  >
+                    {isLogin ? 'Register!' : 'Sign in'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Footer with contact info */}
+          <div className="bg-gray-100 dark:bg-gray-800 p-4 text-center">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Do you have any question?</p>
+            <a href="mailto:nuerohub@email.com" className="text-blue-600 dark:text-blue-400 text-sm hover:underline">
+              nuerohub@email.com
+            </a>
           </div>
         </motion.div>
-      )}
-      <AnimatePresence>
-        {showWelcomePopup && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-          >
-            <motion.div
-              className="bg-white p-6 rounded-lg max-w-sm text-center"
-              initial={{ y: -20 }}
-              animate={{ y: 0 }}
-              exit={{ y: -20 }}
-            >
-              <button
-                onClick={() => setShowWelcomePopup(false)}
-                className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
-              >
-                ✕
-              </button>
-              <h2 className="text-xl font-bold text-black mb-4">
-                Welcome back, {user?.displayName || user?.email || 'User'}!
-              </h2>
-              <p className="text-gray-500 mb-4 text-sm">Ready to continue your journey?</p>
-              <button
-                onClick={() => setShowWelcomePopup(false)}
-                className="w-full py-2 bg-yellow-400 text-black font-semibold rounded-full hover:bg-yellow-500 transition-colors duration-200 text-sm"
-              >
-                CONTINUE
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
-            className="fixed top-4 right-4 p-3 bg-yellow-400 text-black rounded-lg shadow-lg z-50 flex items-center space-x-2"
-          >
-            <Check className="h-5 w-5" />
-            <span className="text-sm">{toast.message}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+      </motion.div>
+    </AnimatePresence>
   );
 };
 

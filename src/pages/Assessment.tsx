@@ -2,8 +2,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from './firebase';
+import { supabaseHelpers } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { FormattedMessage, useIntl } from 'react-intl';
 

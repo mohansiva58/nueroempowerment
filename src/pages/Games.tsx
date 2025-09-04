@@ -12,8 +12,7 @@ import ScoopedGame from "../components/games/ScoopedGame";
 import HandDrawGame from "../components/games/HandDrawGame";
 import { Gamepad2, X, Play, Star, Trophy, Home, User, LogIn, LogOut, Settings, Zap, Target, Award, Medal, Crown, Sparkles, TrendingUp, Clock, Users, Flame } from "lucide-react";
 import { SpeechText } from "../components/speach";
-import { collection, addDoc, query, orderBy, limit, getDocs, where, Timestamp } from "firebase/firestore";
-import { db } from "./firebase";
+import { supabaseHelpers } from "../lib/supabase";
 import { useAuth } from "./AuthContext";
 
 

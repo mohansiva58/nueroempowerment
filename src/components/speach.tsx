@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useSpeech } from './Voice';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSpeechSettings } from '../contexts/SpeechSettingsContext';
@@ -20,6 +20,7 @@ export const SpeechText: React.FC<SpeechTextProps> = ({
   const { locale } = useLanguage();
   const { isSpeechEnabled } = useSpeechSettings();
   const [isHovered, setIsHovered] = useState(false);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLSpanElement>) => {
     if (!isSupported()) return;
@@ -27,14 +28,34 @@ export const SpeechText: React.FC<SpeechTextProps> = ({
     setIsHovered(true);
     const text = e.currentTarget.textContent;
     if (text) {
-      // Use override language if provided, otherwise use current locale
-      speak(text, overrideLanguage || locale);
+      // Small delay to prevent accidental triggers, but fast enough for responsive interaction
+      hoverTimeoutRef.current = setTimeout(() => {
+        speak(text, overrideLanguage || locale);
+      }, 150); // Reduced from potential longer delays
     }
   };
 
   const handleMouseLeave = () => {
     setIsHovered(false);
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
     stop();
+  };
+
+  const handleClick = (e: React.MouseEvent<HTMLSpanElement>) => {
+    if (!isSupported()) return;
+    
+    // Immediate speech on click for better responsiveness
+    const text = e.currentTarget.textContent;
+    if (text) {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+        hoverTimeoutRef.current = null;
+      }
+      speak(text, overrideLanguage || locale);
+    }
   };
 
   // Don't add interactive behavior if speech is not supported or disabled
@@ -76,6 +97,7 @@ export const SpeechText: React.FC<SpeechTextProps> = ({
       className={`${feedbackStyles} ${className}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onClick={handleClick}
       title={`Click to hear in ${overrideLanguage || locale === 'en' ? 'English' : locale === 'hi' ? 'Hindi' : 'Telugu'}`}
       role="button"
       tabIndex={0}
@@ -84,7 +106,7 @@ export const SpeechText: React.FC<SpeechTextProps> = ({
           const syntheticEvent = {
             currentTarget: e.currentTarget
           } as React.MouseEvent<HTMLSpanElement>;
-          handleMouseEnter(syntheticEvent);
+          handleClick(syntheticEvent);
         }
         if (e.key === 'Escape') {
           handleMouseLeave();

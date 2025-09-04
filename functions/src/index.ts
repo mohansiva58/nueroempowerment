@@ -1,17 +1,30 @@
 /**
- * Import function triggers from their respective submodules:
- *
- * import {onCall} from "firebase-functions/v2/https";
- * import {onDocumentWritten} from "firebase-functions/v2/firestore";
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
+ * Simple TypeScript server functions
  */
 
+import express from 'express';
 
-// Start writing functions
-// https://firebase.google.com/docs/functions/typescript
+const app = express();
+const port = process.env.PORT || 3000;
 
-// export const helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+app.use(express.json());
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK', message: 'TypeScript Server is running' });
+});
+
+// Hello world endpoint
+app.get('/hello', (req, res) => {
+  console.log("Hello logs from TypeScript!");
+  res.send("Hello from TypeScript Node.js Server!");
+});
+
+// Start server if this file is run directly
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`TypeScript Server running on http://localhost:${port}`);
+  });
+}
+
+export default app;

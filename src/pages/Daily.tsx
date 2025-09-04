@@ -2,8 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, CheckCircle, Clock, BookOpen, PlusCircle, Trash2, Edit2, Target, Star, Trophy, Flame, TrendingUp, ChevronDown } from 'lucide-react';
 import { SpeechText } from '../components/speach'; // Fixed typo
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { db } from './firebase';
+import { supabaseHelpers } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { FormattedMessage, useIntl } from 'react-intl';
 
@@ -40,10 +39,13 @@ const Daily: React.FC = () => {
   const fetchTasks = useCallback(async () => {
     if (!user) return;
     try {
-      const userDocRef = doc(db, "users", user.uid);
-      const userDoc = await getDoc(userDocRef);
-      if (userDoc.exists()) {
-        const data = userDoc.data();
+      // Use Supabase instead of Firebase
+      const { data, error } = await supabaseHelpers.getUserData(user.id);
+      if (error) {
+        console.error('Error fetching tasks:', error);
+        return;
+      }
+      if (data) {
         setDailyTasks(data.dailyTasks || []);
         setCompletedTasks(data.completedTasks || []);
       }
@@ -57,22 +59,36 @@ const Daily: React.FC = () => {
   }, [fetchTasks]);
 
   const toggleTask = async (taskId: string) => {
+    if (!user) {
+      alert('Please log in to modify tasks.');
+      return;
+    }
+
     const updatedCompletedTasks = completedTasks.includes(taskId)
       ? completedTasks.filter(id => id !== taskId)
       : [...completedTasks, taskId];
 
     setCompletedTasks(updatedCompletedTasks);
 
-    if (user) {
-      await setDoc(
-        doc(db, "users", user.uid),
-        { completedTasks: updatedCompletedTasks },
-        { merge: true }
-      );
+    // Update in Supabase
+    try {
+      const { error } = await supabaseHelpers.updateUserData(user.id, { 
+        completedTasks: updatedCompletedTasks 
+      });
+      if (error) {
+        console.error('Error updating completed tasks:', error);
+      }
+    } catch (error) {
+      console.error('Error updating completed tasks:', error);
     }
   };
 
   const addTask = async () => {
+    if (!user) {
+      alert('Please log in to add tasks with reminders.');
+      return;
+    }
+
     if (!newTask.title || !newTask.duration || !newTask.type || !newTask.reminderTime) return;
 
     const taskToAdd = { ...newTask, id: Date.now().toString() };
@@ -84,16 +100,25 @@ const Daily: React.FC = () => {
     
     resetNewTask();
 
-    if (user) {
-      await setDoc(
-        doc(db, "users", user.uid),
-        { dailyTasks: updatedTasks },
-        { merge: true }
-      );
+    // Save to Supabase
+    try {
+      const { error } = await supabaseHelpers.updateUserData(user.id, { 
+        dailyTasks: updatedTasks 
+      });
+      if (error) {
+        console.error('Error saving task:', error);
+      }
+    } catch (error) {
+      console.error('Error saving task:', error);
     }
   };
 
   const updateTask = async () => {
+    if (!user) {
+      alert('Please log in to update tasks.');
+      return;
+    }
+
     if (!editTask || !newTask.title || !newTask.duration || !newTask.type || !newTask.reminderTime) return;
 
     const updatedTasks = dailyTasks.map(task =>
@@ -103,25 +128,38 @@ const Daily: React.FC = () => {
     setEditTask(null);
     resetNewTask();
 
-    if (user) {
-      await setDoc(
-        doc(db, "users", user.uid),
-        { dailyTasks: updatedTasks },
-        { merge: true }
-      );
+    // Update in Supabase
+    try {
+      const { error } = await supabaseHelpers.updateUserData(user.id, { 
+        dailyTasks: updatedTasks 
+      });
+      if (error) {
+        console.error('Error updating task:', error);
+      }
+    } catch (error) {
+      console.error('Error updating task:', error);
     }
   };
 
   const deleteTask = async (taskId: string) => {
+    if (!user) {
+      alert('Please log in to delete tasks.');
+      return;
+    }
+
     const updatedTasks = dailyTasks.filter(task => task.id !== taskId);
     setDailyTasks(updatedTasks);
 
-    if (user) {
-      await setDoc(
-        doc(db, "users", user.uid),
-        { dailyTasks: updatedTasks },
-        { merge: true }
-      );
+    // Update in Supabase
+    try {
+      const { error } = await supabaseHelpers.updateUserData(user.id, { 
+        dailyTasks: updatedTasks 
+      });
+      if (error) {
+        console.error('Error deleting task:', error);
+      }
+    } catch (error) {
+      console.error('Error deleting task:', error);
     }
   };
 
@@ -139,6 +177,17 @@ const Daily: React.FC = () => {
   };
 
   const sendTaskReminder = useCallback(async (task: Task) => {
+    // Check if user is logged in
+    if (!user) {
+      alert('Please log in to access reminder features.');
+      return;
+    }
+
+    if (!user.email) {
+      alert('Email address is required to send reminders. Please update your profile.');
+      return;
+    }
+
     try {
       const formData = new FormData();
       formData.append('access_key', '8b668786-3689-4838-9945-8123244ba831');
@@ -159,10 +208,7 @@ const Daily: React.FC = () => {
         NueroHub
       `);
       formData.append('from_name', 'Nuerohub Reminder');
-      
-      if (user?.email) {
-        formData.append('email', user.email);
-      }
+      formData.append('email', user.email);
 
       const response = await fetch('https://api.web3forms.com/submit', {
         method: 'POST',
@@ -178,9 +224,15 @@ const Daily: React.FC = () => {
       console.error('Error sending task reminder:', error);
       alert('Failed to send task reminder. Please try again.');
     }
-  }, [user?.email]);
+  }, [user]);
 
   const scheduleTaskReminder = async (task: Task) => {
+    // Check if user is logged in
+    if (!user) {
+      alert('Please log in to schedule reminders.');
+      return;
+    }
+
     const reminderDateTime = new Date(`${new Date().toDateString()} ${task.reminderTime}`);
     const now = new Date();
     const timeUntilReminder = reminderDateTime.getTime() - now.getTime();
@@ -201,12 +253,16 @@ const Daily: React.FC = () => {
     );
     setDailyTasks(updatedTasks);
 
-    if (user) {
-      await setDoc(
-        doc(db, "users", user.uid),
-        { dailyTasks: updatedTasks },
-        { merge: true }
-      );
+    // Update in Supabase
+    try {
+      const { error } = await supabaseHelpers.updateUserData(user.id, { 
+        dailyTasks: updatedTasks 
+      });
+      if (error) {
+        console.error('Error updating reminder schedule:', error);
+      }
+    } catch (error) {
+      console.error('Error updating reminder schedule:', error);
     }
 
     const timeString = reminderDateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -284,7 +340,36 @@ const Daily: React.FC = () => {
         />
       </div>
 
-      <div className="max-w-6xl mx-auto space-y-8 relative z-10">
+      {!user ? (
+        // Login required message
+        <div className="max-w-xl mx-auto mt-20 relative z-10">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6 }}
+            className="bg-white/90 backdrop-blur-lg rounded-2xl shadow-xl border border-white/20 p-8 text-center"
+          >
+            <div className="w-20 h-20 bg-gradient-to-r from-indigo-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Calendar className="w-10 h-10 text-white" />
+            </div>
+            <h2 className="text-3xl font-bold text-gray-800 mb-4">Login Required</h2>
+            <p className="text-gray-600 mb-6 leading-relaxed">
+              You must be logged in to access daily task reminders and schedule email notifications. 
+              Please log in to manage your tasks and set up personalized reminders.
+            </p>
+            <motion.a
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              href="/login"
+              className="inline-block px-8 py-3 bg-gradient-to-r from-indigo-500 to-blue-600 text-white rounded-xl hover:from-indigo-600 hover:to-blue-700 transition-all font-semibold shadow-lg"
+            >
+              Login to Access Reminders
+            </motion.a>
+          </motion.div>
+        </div>
+      ) : (
+        // Main content for logged-in users
+        <div className="max-w-6xl mx-auto space-y-8 relative z-10">
         {/* Enhanced Header */}
         <motion.header
           initial={{ y: -50, opacity: 0 }}
@@ -1019,7 +1104,8 @@ const Daily: React.FC = () => {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,8 +1,7 @@
 ﻿import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SpeechText } from '../components/speach';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from './firebase';
+import { supabaseHelpers } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { Clock, Calendar, CheckCircle, PlayCircle, Search, X } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
@@ -83,6 +82,23 @@ const Learning: React.FC = () => {
   const location = useLocation();
   const [completion, setCompletion] = useState<{ [key: string]: number }>({});
   const [enrolledCourses, setEnrolledCourses] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    // Simulate predicted category from location state or default to "All"
+    const predictedCategoryFromState = (location.state as { predictedCategory?: string })?.predictedCategory;
+    const finalPredictedCategory = predictedCategoryFromState || "All";
+    setSelectedCategory(finalPredictedCategory);
+
+    // Auto-enroll recommended course for predicted category
+    if (finalPredictedCategory !== "All") {
+      const recommendedCourse = learningPlan.find(course => course.category === finalPredictedCategory);
+      if (recommendedCourse && !enrolledCourses.has(recommendedCourse.titleKey)) {
+        setEnrolledCourses(new Set([...enrolledCourses, recommendedCourse.titleKey]));
+        setCompletion(prev => ({ ...prev, [recommendedCourse.titleKey]: 0 }));
+      }
+    }
+    setIsLoading(false);
+    // eslint-disable-next-line
+  }, [location.state]);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -94,33 +110,40 @@ const Learning: React.FC = () => {
       if (user) {
         try {
           setIsLoading(true);
-          const userDocRef = doc(db, "users", user.uid);
-          const userDoc = await getDoc(userDocRef);
-          let enrolledFromFirebase: string[] = [];
-          let completionFromFirebase: { [key: string]: number } = {};
-          let predictedCategoryFromFirebase: string = "All";
+          // Supabase: fetch user data from 'users' table
+          const { data: userData, error } = await supabaseHelpers
+            .from("users")
+            .select("*")
+            .eq("id", user.id)
+            .single();
 
-          if (userDoc.exists()) {
-            const data = userDoc.data();
-            enrolledFromFirebase = data.enrolled || [];
-            completionFromFirebase = data.completion || {};
-            predictedCategoryFromFirebase = data.predictedCategory || "All";
+          let enrolledFromSupabase: string[] = [];
+          let completionFromSupabase: { [key: string]: number } = {};
+          let predictedCategoryFromSupabase: string = "All";
+
+          if (userData) {
+            enrolledFromSupabase = userData.enrolled || [];
+            completionFromSupabase = userData.completion || {};
+            predictedCategoryFromSupabase = userData.predictedCategory || "All";
           }
 
-          setEnrolledCourses(new Set(enrolledFromFirebase));
-          setCompletion(completionFromFirebase);
+          setEnrolledCourses(new Set(enrolledFromSupabase));
+          setCompletion(completionFromSupabase);
           const predictedCategoryFromState = (location.state as { predictedCategory?: string })?.predictedCategory;
-          const finalPredictedCategory = predictedCategoryFromState || predictedCategoryFromFirebase;
+          const finalPredictedCategory = predictedCategoryFromState || predictedCategoryFromSupabase;
           setSelectedCategory(finalPredictedCategory);
 
           if (finalPredictedCategory !== "All") {
             const recommendedCourse = learningPlan.find(course => course.category === finalPredictedCategory);
-            if (recommendedCourse && !enrolledFromFirebase.includes(recommendedCourse.titleKey)) {
-              const newEnrolled = new Set([...enrolledFromFirebase, recommendedCourse.titleKey]);
+            if (recommendedCourse && !enrolledFromSupabase.includes(recommendedCourse.titleKey)) {
+              const newEnrolled = new Set([...enrolledFromSupabase, recommendedCourse.titleKey]);
               setEnrolledCourses(newEnrolled);
-              const newCompletion = { ...completionFromFirebase, [recommendedCourse.titleKey]: 0 };
+              const newCompletion = { ...completionFromSupabase, [recommendedCourse.titleKey]: 0 };
               setCompletion(newCompletion);
-              await setDoc(userDocRef, { enrolled: Array.from(newEnrolled), completion: newCompletion }, { merge: true });
+              await supabaseHelpers
+                .from("users")
+                .update({ enrolled: Array.from(newEnrolled), completion: newCompletion })
+                .eq("id", user.id);
             }
           }
         } catch (error) {
