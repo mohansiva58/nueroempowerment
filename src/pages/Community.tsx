@@ -187,6 +187,19 @@ const SocialPlatform = () => {
           photoURL: profileData.avatar_url || '',
           status: profileData.status || '',
         });
+      } else {
+        // Handle case where users table doesn't exist or no profile data
+        console.log('No profile data found, using default values');
+        setProfileData({
+          bio: '',
+          description: 'NeuroHub community member',
+          connections: [],
+          displayName: user.email?.split('@')[0] || 'Anonymous',
+          lastActive: Date.now(),
+          isLoggedIn: true,
+          photoURL: '',
+          status: 'active',
+        });
       }
     } catch (error) {
       console.error('Error fetching profile:', error);

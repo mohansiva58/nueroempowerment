@@ -21,10 +21,7 @@ const AuthCallback: React.FC = () => {
 
         if (session?.user) {
           // Successfully authenticated with Google
-          login({
-            id: session.user.id,
-            email: session.user.email || null
-          });
+          login(session.user);
 
           // Redirect to home page
           navigate('/', { replace: true });

@@ -146,7 +146,7 @@ const Home = () => {
         breathTimeout = setTimeout(() => {
           setShowBreathPopup(false);
         }, 10000);
-      }, 90000);
+      }, 300000); // Changed to 5 minutes (300000ms) to reduce frequency
     };
 
     startBreathCycle();
@@ -173,13 +173,13 @@ const Home = () => {
     if (!isCoursesHovered && featuredCourses.length > 0) {
       courseInterval = setInterval(() => {
         setCurrentCourse((prev) => (prev + 1) % featuredCourses.length);
-      }, 8000); // Increased to 8 seconds to reduce re-renders
+      }, 12000); // Increased to 12 seconds to reduce re-renders
     }
 
     if (!isGamesHovered && featuredGames.length > 0) {
       gameInterval = setInterval(() => {
         setCurrentGame((prev) => (prev + 1) % featuredGames.length);
-      }, 10000); // Increased to 10 seconds to reduce re-renders
+      }, 15000); // Increased to 15 seconds to reduce re-renders
     }
 
     return () => {
@@ -439,7 +439,7 @@ const Home = () => {
 
           {/* Features Grid */}
           <motion.section
-            variants={containerVariants}
+            variants={containerVariants()}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
@@ -448,14 +448,14 @@ const Home = () => {
             <div className="text-center mb-16">
               <motion.div
                 className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-black rounded-full text-black text-sm font-bold mb-6 font-mono"
-                variants={itemVariants}
+                variants={itemVariants()}
               >
                 <Activity className="w-4 h-4" />
                 <FormattedMessage id="home.platform_features" defaultMessage="Platform Features" />
               </motion.div>
               <motion.h2 
                 className="text-4xl lg:text-5xl font-bold text-black mb-4 font-mono"
-                variants={itemVariants}
+                variants={itemVariants()}
               >
                 <SpeechText>
                   <FormattedMessage id="home.our_features" defaultMessage="Our Features" />
@@ -463,7 +463,7 @@ const Home = () => {
               </motion.h2>
               <motion.p 
                 className="text-xl text-gray-700 max-w-2xl mx-auto font-mono"
-                variants={itemVariants}
+                variants={itemVariants()}
               >
                 <FormattedMessage id="home.discover_tools" defaultMessage="Discover powerful tools designed to enhance your learning journey" />
               </motion.p>
@@ -477,7 +477,7 @@ const Home = () => {
               ].map((feature, index) => (
                 <motion.div
                   key={index}
-                  variants={itemVariants}
+                  variants={itemVariants()}
                   className="group relative bg-white p-8 rounded-3xl border-2 border-black shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2"
                   whileHover={{ scale: 1.02 }}
                 >
@@ -821,7 +821,7 @@ const Home = () => {
 
           {/* Stats Section */}
           <motion.section
-            variants={containerVariants}
+            variants={containerVariants()}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
@@ -837,14 +837,14 @@ const Home = () => {
                 <div className="text-center mb-12">
                   <motion.div
                     className="inline-flex items-center gap-2 px-4 py-2 bg-white text-black rounded-full text-sm font-bold mb-6 font-mono"
-                    variants={itemVariants}
+                    variants={itemVariants()}
                   >
                     <BarChart2 className="w-4 h-4" />
                     <FormattedMessage id="home.platform_statistics" defaultMessage="Platform Statistics" />
                   </motion.div>
                   <motion.h2 
                     className="text-4xl lg:text-5xl font-bold mb-4 font-mono"
-                    variants={itemVariants}
+                    variants={itemVariants()}
                   >
                     <SpeechText>
                       <FormattedMessage id="home.our_impact" defaultMessage="Our Impact" />

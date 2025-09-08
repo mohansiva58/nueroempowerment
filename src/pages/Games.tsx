@@ -1,5 +1,4 @@
-﻿/* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FormattedMessage, useIntl } from "react-intl";
 import MemoryMatch from "../components/games/MemoryMatch";
@@ -10,9 +9,9 @@ import EmotionMatching from "../components/games/EmotionMatching";
 import FocusTrainer from "../components/games/FocusTrainer";
 import ScoopedGame from "../components/games/ScoopedGame";
 import HandDrawGame from "../components/games/HandDrawGame";
-import { Gamepad2, X, Play, Star, Trophy, Home, User, LogIn, LogOut, Settings, Zap, Target, Award, Medal, Crown, Sparkles, TrendingUp, Clock, Users, Flame } from "lucide-react";
+import { Gamepad2, X, Play, Star, Trophy, Zap, Target, Award, Medal, Crown, Sparkles, TrendingUp, Clock, Users } from "lucide-react";
 import { SpeechText } from "../components/speach";
-import { supabaseHelpers } from "../lib/supabase";
+import { supabase } from "../lib/supabase";
 import { useAuth } from "./AuthContext";
 
 
@@ -88,7 +87,7 @@ const GamesPage: React.FC = () => {
   const [totalAchievements, setTotalAchievements] = useState<number>(0);
   const [userAchievements, setUserAchievements] = useState<UserAchievement[]>([]);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   const games: Game[] = [
     { id: "scooped", title: "SCOOP'D", component: ScoopedGame, logo: "https://cdn-icons-png.flaticon.com/512/3176/3176366.png", description: "Catch falling letters with your bucket in this fast-paced game!", rating: 4.9, category: "skill" },
@@ -125,23 +124,32 @@ const GamesPage: React.FC = () => {
       try {
         setIsLoadingStats(true);
         
-        // Fetch users who have actually played games (have leaderboard entries)
-        const leaderboardCollection = collection(db, "leaderboard");
-        const leaderboardSnapshot = await getDocs(leaderboardCollection);
+        // Fetch leaderboard data using Supabase
+        const { data: leaderboardData, error } = await supabase
+          .from("leaderboard")
+          .select("*")
+          .order("score", { ascending: false })
+          .limit(100);
+        
+        if (error) {
+          console.error("Error fetching leaderboard data:", error);
+          setPlayerCount(0);
+          setTotalAchievements(0);
+          return;
+        }
         
         // Count unique players who have played games
         const uniquePlayerIds = new Set();
-        leaderboardSnapshot.docs.forEach(doc => {
-          const data = doc.data();
-          if (data.userId) {
-            uniquePlayerIds.add(data.userId);
+        leaderboardData?.forEach(entry => {
+          if (entry.user_id) {
+            uniquePlayerIds.add(entry.user_id);
           }
         });
         
         setPlayerCount(uniquePlayerIds.size);
-        setTotalAchievements(leaderboardSnapshot.size);
+        setTotalAchievements(leaderboardData?.length || 0);
         
-        console.log(`Fetched ${uniquePlayerIds.size} active players and ${leaderboardSnapshot.size} total game records`);
+        console.log(`Fetched ${uniquePlayerIds.size} active players and ${leaderboardData?.length || 0} total game records`);
       } catch (error) {
         console.error("Error fetching real-time stats:", error);
         // Only use fallback if there's actually an error, set to 0 if no data
@@ -153,6 +161,27 @@ const GamesPage: React.FC = () => {
     };
 
     fetchRealTimeStats();
+    
+    // Set up real-time subscription for stats updates
+    const channel = supabase
+      .channel('leaderboard-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'leaderboard'
+        },
+        () => {
+          // Re-fetch stats when leaderboard changes
+          fetchRealTimeStats();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // Fetch user-specific achievements
@@ -161,13 +190,17 @@ const GamesPage: React.FC = () => {
 
     const fetchUserAchievements = async () => {
       try {
-        // Get user's game scores
-        const userScoresQuery = query(
-          collection(db, "leaderboard"),
-          where("userId", "==", user.uid)
-        );
-        const userScoresSnapshot = await getDocs(userScoresQuery);
-        const userScores = userScoresSnapshot.docs.map(doc => doc.data());
+        // Get user's game scores using Supabase
+        const { data: userScores, error } = await supabase
+          .from("leaderboard")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+        
+        if (error) {
+          console.error("Error fetching user scores:", error);
+          return;
+        }
         
         // Generate achievements based on user's performance
         const achievements: UserAchievement[] = [];
@@ -233,37 +266,33 @@ const GamesPage: React.FC = () => {
   useEffect(() => {
     const fetchLeaderboard = async () => {
       try {
-        let q;
+        let leaderboardQuery = supabase
+          .from("leaderboard")
+          .select("*")
+          .order("score", { ascending: false })
+          .limit(10);
+        
         if (activeGame) {
-          q = query(
-            collection(db, "leaderboard"),
-            where("gameId", "==", activeGame),
-            orderBy("score", "desc"),
-            limit(10)
-          );
-        } else {
-          q = query(
-            collection(db, "leaderboard"),
-            orderBy("score", "desc"),
-            limit(10)
-          );
+          leaderboardQuery = leaderboardQuery.eq("game_name", activeGame);
         }
         
-        const querySnapshot = await getDocs(q);
-        const leaderboardData = querySnapshot.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            userId: data.userId,
-            displayName: data.displayName || "Anonymous",
-            score: data.score,
-            gameId: data.gameId,
-            timestamp: data.timestamp instanceof Timestamp 
-              ? data.timestamp.toDate().toLocaleString() 
-              : new Date(data.timestamp).toLocaleString(),
-          } as LeaderboardEntry;
-        });
+        const { data: leaderboardData, error } = await leaderboardQuery;
         
-        setLeaderboard(leaderboardData);
+        if (error) {
+          console.error("Error fetching leaderboard:", error);
+          setLeaderboard([]);
+          return;
+        }
+        
+        const formattedLeaderboard = leaderboardData?.map((entry) => ({
+          userId: entry.user_id,
+          displayName: entry.user_id || "Anonymous", // We'll need to join with users table for display name
+          score: entry.score,
+          gameId: entry.game_name,
+          timestamp: new Date(entry.created_at).toLocaleString(),
+        })) || [];
+        
+        setLeaderboard(formattedLeaderboard);
       } catch (error) {
         console.error("Error fetching leaderboard:", error);
         setLeaderboard([]);
@@ -285,35 +314,46 @@ const GamesPage: React.FC = () => {
     }
 
     try {
-      const docRef = await addDoc(collection(db, "leaderboard"), {
-        userId: user.uid,
-        displayName: user.displayName || "Anonymous",
-        score,
-        gameId: activeGame,
-        timestamp: Timestamp.fromDate(new Date()),
-      });
+      // Insert score into Supabase leaderboard
+      const { error } = await supabase
+        .from("leaderboard")
+        .insert([{
+          user_id: user.id,
+          score,
+          game_name: activeGame,
+        }])
+        .select()
+        .single();
       
-      // Refetch leaderboard
-      const q = query(
-        collection(db, "leaderboard"),
-        where("gameId", "==", activeGame),
-        orderBy("score", "desc"),
-        limit(10)
-      );
-      const querySnapshot = await getDocs(q);
-      const leaderboardData = querySnapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          userId: data.userId,
-          displayName: data.displayName,
-          score: data.score,
-          gameId: data.gameId,
-          timestamp: data.timestamp instanceof Timestamp 
-            ? data.timestamp.toDate().toLocaleString() 
-            : new Date(data.timestamp).toLocaleString(),
-        } as LeaderboardEntry;
-      });
-      setLeaderboard(leaderboardData);
+      if (error) {
+        console.error("Error submitting score:", error);
+        alert("Failed to submit score!");
+        return;
+      }
+      
+      // Refetch leaderboard to show updated scores
+      const leaderboardQuery = supabase
+        .from("leaderboard")
+        .select("*")
+        .eq("game_name", activeGame)
+        .order("score", { ascending: false })
+        .limit(10);
+      
+      const { data: leaderboardData, error: fetchError } = await leaderboardQuery;
+      
+      if (fetchError) {
+        console.error("Error fetching updated leaderboard:", fetchError);
+      } else {
+        const formattedLeaderboard = leaderboardData?.map((entry) => ({
+          userId: entry.user_id,
+          displayName: entry.user_id || "Anonymous",
+          score: entry.score,
+          gameId: entry.game_name,
+          timestamp: new Date(entry.created_at).toLocaleString(),
+        })) || [];
+        
+        setLeaderboard(formattedLeaderboard);
+      }
     } catch (error) {
       console.error("Error submitting score:", error);
       alert(`Failed to submit score: ${error instanceof Error ? error.message : "Unknown error"}`);
@@ -912,7 +952,7 @@ const GamesPage: React.FC = () => {
                     </div>
                     <SpeechText>
                       {activeGame 
-                        ? `${games.find(g => g.id === activeGame)?.title} ${Rankings}`
+                        ? `${games.find(g => g.id === activeGame)?.title} Rankings`
                         : "Global Champions"}
                     </SpeechText>
                   </motion.h3>
@@ -935,7 +975,7 @@ const GamesPage: React.FC = () => {
                         animate={{ opacity: 1, x: 0, scale: 1 }}
                         transition={{ delay: index * 0.1, duration: 0.3 }}
                         className={`relative flex items-center p-4 rounded-xl transition-all duration-300 ${
-                          user && entry.userId === user.uid 
+                          user && entry.userId === user.id 
                             ? 'bg-gray-100 border border-black scale-105' 
                             : 'bg-gray-50 hover:bg-gray-100 border border-gray-200'
                         }`}
@@ -968,13 +1008,13 @@ const GamesPage: React.FC = () => {
                             <p className="text-black font-bold truncate">
                               {entry.displayName}
                             </p>
-                            {user && entry.userId === user.uid && (
+                            {user && entry.userId === user.id && (
                               <motion.span 
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
                                 className="bg-black text-white text-xs px-2 py-1 rounded-full font-bold"
                               >
-                                {YOU}
+                                YOU
                               </motion.span>
                             )}
                           </div>

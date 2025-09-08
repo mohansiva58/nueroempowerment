@@ -3,7 +3,7 @@ import { useSpeech } from './Voice';
 import { useLanguage } from '../contexts/LanguageContext';
 
 const VoiceTester: React.FC = () => {
-  const { speak, getAvailableVoices, getTeluguVoices, debugVoices, isSupported } = useSpeech();
+  const { speak, getAvailableVoices, isSupported } = useSpeech();
   const { locale, changeLanguage } = useLanguage();
 
   const testTeluguSpeech = () => {
@@ -28,10 +28,6 @@ const VoiceTester: React.FC = () => {
   };
 
   const logAllVoices = () => {
-    debugVoices();
-    console.log('Telugu-specific voices:');
-    getTeluguVoices();
-    
     // Additional diagnostics
     const voices = getAvailableVoices();
     console.log('=== VOICE DIAGNOSTICS ===');
@@ -83,32 +79,11 @@ const VoiceTester: React.FC = () => {
       setTimeout(() => {
         const voices2 = window.speechSynthesis.getVoices();
         console.log('🔄 Second attempt found', voices2.length, 'voices');
-  const testSystemBasic = () => {
-    console.log('🧪 BASIC SYSTEM TEST');
-    console.log('Speech Synthesis supported:', 'speechSynthesis' in window);
-    
-    if ('speechSynthesis' in window) {
-      const synth = window.speechSynthesis;
-      console.log('Speech synthesis object:', !!synth);
-      
-      // Try basic speech without any voice selection
-      const utterance = new SpeechSynthesisUtterance('Testing basic system speech');
-      utterance.rate = 0.8;
-      utterance.pitch = 1.0;
-      utterance.volume = 0.8;
-      
-      utterance.onstart = () => console.log('✅ Basic speech started successfully!');
-      utterance.onend = () => console.log('✅ Basic speech completed!');
-      utterance.onerror = (e) => console.error('❌ Basic speech failed:', e.error);
-      
-      try {
-        synth.speak(utterance);
-        console.log('📢 Basic speech command sent');
-      } catch (error) {
-        console.error('❌ Failed to send basic speech command:', error);
-      }
+      }, 500);
     }
-  };
+  }
+  // End of forceReloadVoices function
+
 
   if (!isSupported()) {
     return (

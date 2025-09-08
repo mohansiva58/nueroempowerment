@@ -368,3 +368,7 @@ const Assessment: React.FC = () => {
 };
 
 export default Assessment;
+
+function doc(db: any, arg1: string, uid: any) {
+  throw new Error('Function not implemented.');
+}

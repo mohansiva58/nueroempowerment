@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SpeechText } from '../components/speach';
-import { supabaseHelpers } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { Clock, Calendar, CheckCircle, PlayCircle, Search, X } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
@@ -111,7 +111,7 @@ const Learning: React.FC = () => {
         try {
           setIsLoading(true);
           // Supabase: fetch user data from 'users' table
-          const { data: userData, error } = await supabaseHelpers
+          const { data: userData } = await supabase
             .from("users")
             .select("*")
             .eq("id", user.id)
@@ -140,10 +140,11 @@ const Learning: React.FC = () => {
               setEnrolledCourses(newEnrolled);
               const newCompletion = { ...completionFromSupabase, [recommendedCourse.titleKey]: 0 };
               setCompletion(newCompletion);
-              await supabaseHelpers
-                .from("users")
-                .update({ enrolled: Array.from(newEnrolled), completion: newCompletion })
-                .eq("id", user.id);
+              // Update or create user profile row with enrolled/completion
+              const { error: updateError } = await supabase
+                .from('users')
+                .upsert([{ id: user.id, enrolled: Array.from(newEnrolled), completion: newCompletion }]);
+              if (updateError) console.error('Error updating user enrollment:', updateError);
             }
           }
         } catch (error) {
@@ -163,10 +164,12 @@ const Learning: React.FC = () => {
   const updateUserData = async (newEnrolled: Set<string>, newCompletion: { [key: string]: number }) => {
     if (user) {
       try {
-        const userDocRef = doc(db, "users", user.uid);
-        await setDoc(userDocRef, { enrolled: Array.from(newEnrolled), completion: newCompletion }, { merge: true });
+        const { error } = await supabase
+          .from('users')
+          .upsert([{ id: user.id, enrolled: Array.from(newEnrolled), completion: newCompletion }]);
+        if (error) console.error('Error updating user data:', error);
       } catch (error) {
-        console.error("Error updating user data:", error);
+        console.error('Error updating user data:', error);
       }
     }
   };

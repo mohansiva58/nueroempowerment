@@ -1,10 +1,9 @@
-﻿import { useState, useEffect } from 'react';
+﻿import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Home, BookOpen, Gamepad2, Calendar, Users, Brain, Settings, FileText, MessageSquare, User, LogOut, Volume2, VolumeX } from 'lucide-react';
+import { Menu, X, Home, BookOpen, Gamepad2, Calendar, Users, Brain, Settings, FileText, MessageSquare, User as UserIcon, LogOut, Activity, Mic } from 'lucide-react';
 import { SpeechText } from '../components/speach';
 import { FormattedMessage } from 'react-intl';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useSpeechSettings } from '../contexts/SpeechSettingsContext';
 import { useAuth } from '../pages/AuthContext';
 import Login from '../pages/Login';
 
@@ -16,7 +15,20 @@ const Navbar = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
   const { currentLanguage, changeLanguage } = useLanguage();
-  const { isSpeechEnabled, toggleSpeech } = useSpeechSettings();
+
+  const handleLogout = useCallback(() => {
+    logout();
+    setShowSuccess('logout');
+    setIsProfileOpen(false);
+  }, [logout]);
+
+  const handleLoginClick = useCallback(() => {
+    setIsLoginOpen(true);
+  }, []);
+
+  const handleCloseLogin = useCallback(() => {
+    setIsLoginOpen(false);
+  }, []);
 
   const navigation = [
     { nameKey: "navbar.home", href: '/', icon: Home },
@@ -25,46 +37,43 @@ const Navbar = () => {
     { nameKey: "navbar.daily", href: '/daily', icon: Calendar },
     { nameKey: "navbar.community", href: '/community', icon: Users },
     { nameKey: "navbar.assessment", href: '/assessment', icon: Brain },
+    { nameKey: "navbar.ml_analysis", href: '/ml-analysis', icon: Brain },
   ];
 
-  const profileMenu = [
+  const profileMenu = useMemo(() => [
+    { nameKey: "navbar.ml_analysis", href: '/ml-analysis', icon: Brain },
+    { nameKey: "navbar.real_time_monitoring", href: '/real-time-monitoring', icon: Activity },
+    { nameKey: "navbar.speech_analysis", href: '/speech-analysis', icon: Mic },
     { nameKey: "navbar.settings", href: '/settings', icon: Settings },
     { nameKey: "navbar.blog", href: '/blog', icon: FileText },
     { nameKey: "navbar.articles", href: '/articles', icon: MessageSquare },
     { nameKey: "navbar.about", href: '/about', icon: FileText },
-    { nameKey: "navbar.logout", href: '#', icon: LogOut, onClick: () => handleLogout(), hide: !user },
-  ];
-
-  const handleLogout = () => {
-    logout();
-    setShowSuccess('logout');
-    setIsProfileOpen(false);
-  };
-
-  const handleLoginClick = () => {
-    setIsLoginOpen(true);
-  };
-
-  const handleCloseLogin = () => {
-    setIsLoginOpen(false);
-  };
+    { nameKey: "navbar.logout", href: '#', icon: LogOut, onClick: handleLogout, hide: !user },
+  ], [handleLogout, user]);
 
   const getUserInitials = () => {
-    if (user && user.displayName) {
-      const nameParts = user.displayName.split(' ');
-      return nameParts.length > 1
-        ? `${nameParts[0][0]}${nameParts[1][0]}`
-        : nameParts[0][0];
+    if (user && user.email) {
+      // Use email to generate initials since Supabase user doesn't have displayName by default
+      const emailParts = user.email.split('@')[0];
+      return emailParts.substring(0, 2).toUpperCase();
     }
-    return '';
+    return 'U';
+  };
+
+  const getUserDisplayName = () => {
+    return user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
+  };
+
+  const getUserAvatar = () => {
+    return user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
   };
 
   useEffect(() => {
     if (user) {
       console.log('User Data:', {
-        displayName: user.displayName,
+        id: user.id,
         email: user.email,
-        photoURL: user.photoURL,
+        metadata: user.user_metadata,
       });
     }
   }, [user]);
@@ -111,19 +120,7 @@ const Navbar = () => {
                   <option value="hi">HI</option>
                 </select>
                 
-                {/* Mobile Speech Toggle Button */}
-                <button
-                  onClick={toggleSpeech}
-                  className={`p-1.5 rounded-md transition-colors ${
-                    isSpeechEnabled 
-                      ? 'bg-green-600 hover:bg-green-700 text-white' 
-                      : 'bg-gray-600 hover:bg-gray-700 text-gray-300'
-                  }`}
-                  title={isSpeechEnabled ? 'Disable Speech' : 'Enable Speech'}
-                  aria-label={isSpeechEnabled ? 'Disable Speech' : 'Enable Speech'}
-                >
-                  {isSpeechEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-                </button>
+                {/* Mobile Speech Toggle Button - REMOVED per user request */}
               </div>
             </div>
 
@@ -135,6 +132,15 @@ const Navbar = () => {
                   <Link
                     key={item.nameKey}
                     to={item.href}
+                    onClick={(e: React.MouseEvent<HTMLElement>) => {
+                      console.debug('Navbar desktop link clicked', item.href, 'userPresent:', !!user);
+                      try {
+                        const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
+                        console.debug('elementFromPoint at click:', el ? `${el.tagName} ${el.className}` : el);
+                      } catch (err) {
+                        console.debug('elementFromPoint error', err);
+                      }
+                    }}
                     className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium ${
                       location.pathname === item.href ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-900'
                     }`}
@@ -163,19 +169,7 @@ const Navbar = () => {
                 <option value="hi">हिंदी</option>
               </select>
 
-              {/* Speech Toggle Button */}
-              <button
-                onClick={toggleSpeech}
-                className={`p-2 rounded-md transition-colors ${
-                  isSpeechEnabled 
-                    ? 'bg-green-600 hover:bg-green-700 text-white' 
-                    : 'bg-gray-600 hover:bg-gray-700 text-gray-300'
-                }`}
-                title={isSpeechEnabled ? 'Disable Speech' : 'Enable Speech'}
-                aria-label={isSpeechEnabled ? 'Disable Speech' : 'Enable Speech'}
-              >
-                {isSpeechEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-              </button>
+              {/* Speech Toggle Button - REMOVED per user request */}
 
               {/* Profile Dropdown */}
               <div className="relative">
@@ -185,13 +179,13 @@ const Navbar = () => {
                     className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-900 hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
                     aria-label="User Profile"
                   >
-                    {user.photoURL ? (
+                    {getUserAvatar() ? (
                       <img
-                        src={user.photoURL}
-                        alt={`${user.displayName || 'User'}'s Profile`}
+                        src={getUserAvatar()}
+                        alt={`${getUserDisplayName()}'s Profile`}
                         className="w-full h-full object-cover rounded-full"
                         onError={(e) => {
-                          console.error('Image failed to load:', user.photoURL);
+                          console.error('Image failed to load:', getUserAvatar());
                           e.currentTarget.style.display = 'none';
                           const nextSibling = e.currentTarget.nextSibling as HTMLElement | null;
                           if (nextSibling) nextSibling.style.display = 'flex';
@@ -211,14 +205,14 @@ const Navbar = () => {
                     className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-800 hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
                     aria-label="Login"
                   >
-                    <User className="h-5 w-5" />
+                    <UserIcon className="h-5 w-5" />
                   </button>
                 )}
                 {isProfileOpen && user && (
                   <div className="absolute right-0 mt-2 w-56 rounded-lg shadow-xl bg-gradient-to-b from-gray-900 to-black border border-gray-800 transform origin-top-right transition-all duration-200 ease-in-out z-50">
                     <div className="px-4 py-3 border-b border-gray-800">
                       <SpeechText>
-                        <p className="text-sm font-medium text-white truncate">{user.displayName || 'User'}</p>
+                        <p className="text-sm font-medium text-white truncate">{getUserDisplayName()}</p>
                       </SpeechText>
                       <SpeechText>
                         <p className="text-xs text-gray-300 truncate">{user.email}</p>
@@ -232,7 +226,17 @@ const Navbar = () => {
                           <Link
                             key={item.nameKey}
                             to={item.href}
-                            onClick={item.onClick || (() => setIsProfileOpen(false))}
+                            onClick={(e) => {
+                              console.log('Desktop profile menu item clicked:', item.nameKey, item.href);
+                              if (item.onClick) {
+                                e.preventDefault();
+                                console.log('Executing custom onClick for:', item.nameKey);
+                                item.onClick();
+                              } else {
+                                console.log('Closing profile menu and navigating to:', item.href);
+                                setIsProfileOpen(false);
+                              }
+                            }}
                             className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-200 hover:bg-gray-800 hover:text-white transition-colors duration-150"
                           >
                             <Icon className="h-4 w-4 text-gray-300" />
@@ -274,7 +278,16 @@ const Navbar = () => {
                     className={`flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium ${
                       location.pathname === item.href ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-800'
                     }`}
-                    onClick={() => setIsOpen(false)}
+                    onClick={(e: React.MouseEvent<HTMLElement>) => {
+                      console.debug('Navbar mobile link clicked', item.href, 'userPresent:', !!user);
+                      try {
+                        const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
+                        console.debug('elementFromPoint at click:', el ? `${el.tagName} ${el.className}` : el);
+                      } catch (err) {
+                        console.debug('elementFromPoint error', err);
+                      }
+                      setIsOpen(false);
+                    }}
                   >
                     <Icon className="h-5 w-5" />
                     <SpeechText>
@@ -296,13 +309,13 @@ const Navbar = () => {
                     >
                       <div className="flex items-center space-x-2">
                         <div className="flex items-center justify-center w-8 h-8 rounded-full overflow-hidden">
-                          {user.photoURL ? (
+                          {getUserAvatar() ? (
                             <img
-                              src={user.photoURL}
-                              alt={`${user.displayName || 'User'}'s Profile`}
+                              src={getUserAvatar()}
+                              alt={`${getUserDisplayName()}'s Profile`}
                               className="w-full h-full object-cover"
                               onError={(e) => {
-                                console.error('Image failed to load:', user.photoURL);
+                                console.error('Image failed to load:', getUserAvatar());
                                 e.currentTarget.style.display = 'none';
                                 const nextSibling = e.currentTarget.nextSibling as HTMLElement | null;
                                 if (nextSibling) nextSibling.style.display = 'flex';
@@ -317,7 +330,7 @@ const Navbar = () => {
                           )}
                         </div>
                         <SpeechText>
-                          <span>{user.displayName || 'Profile'}</span>
+                          <span>{getUserDisplayName()}</span>
                         </SpeechText>
                       </div>
                     </button>
@@ -325,7 +338,7 @@ const Navbar = () => {
                       <div className="w-full rounded-lg shadow-xl bg-gradient-to-b from-gray-900 to-black border border-gray-800 transition-all duration-200 ease-in-out">
                         <div className="px-4 py-3 border-b border-gray-800">
                           <SpeechText>
-                            <p className="text-sm font-medium text-white truncate">{user.displayName || 'User'}</p>
+                            <p className="text-sm font-medium text-white truncate">{getUserDisplayName()}</p>
                           </SpeechText>
                           <SpeechText>
                             <p className="text-xs text-gray-300 truncate">{user.email}</p>
@@ -339,7 +352,18 @@ const Navbar = () => {
                               <Link
                                 key={item.nameKey}
                                 to={item.href}
-                                onClick={item.onClick || (() => setIsProfileOpen(false))}
+                                onClick={(e) => {
+                                  console.log('Mobile profile menu item clicked:', item.nameKey, item.href);
+                                  if (item.onClick) {
+                                    e.preventDefault();
+                                    console.log('Executing custom onClick for:', item.nameKey);
+                                    item.onClick();
+                                  } else {
+                                    console.log('Closing profile menu and navigating to:', item.href);
+                                    setIsProfileOpen(false);
+                                    setIsOpen(false); // Also close mobile menu
+                                  }
+                                }}
                                 className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-200 hover:bg-gray-800 hover:text-white transition-colors duration-150"
                               >
                                 <Icon className="h-4 w-4 text-gray-300" />
@@ -360,7 +384,7 @@ const Navbar = () => {
                     onClick={handleLoginClick}
                     className="flex items-center space-x-2 w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800 transition-colors duration-200"
                   >
-                    <User className="h-5 w-5" />
+                    <UserIcon className="h-5 w-5" />
                     <SpeechText>
                       <span>
                         <FormattedMessage id="navbar.login" defaultMessage="Login" />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FcGoogle } from 'react-icons/fc';
-import { Check, Eye, EyeOff, Mail, Lock, User, ArrowRight, Sparkles } from 'lucide-react';
+import { Check, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from './AuthContext';
 import { supabaseHelpers } from '../lib/supabase';
@@ -31,12 +31,21 @@ const Login: React.FC<AuthPopupProps> = ({ isOpen, onClose }) => {
 
   // Redirect if user is already logged in
   useEffect(() => {
+    // Only redirect when the login modal is open. The Login component is mounted
+    // in Navbar even when closed which previously caused it to always redirect
+    // a logged-in user back to home when any navigation occurred.
+    if (!isOpen) return;
     if (user) {
-      navigate('/');
-      onClose();
+      const timer = setTimeout(() => {
+        navigate('/');
+        onClose();
+      }, 100);
+      return () => clearTimeout(timer);
     }
-    
-    // Check for OAuth errors in URL parameters
+  }, [user, navigate, onClose, isOpen]);
+
+  // Check for OAuth errors in URL parameters (separate effect)
+  useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const errorParam = urlParams.get('error');
     if (errorParam) {
@@ -44,7 +53,7 @@ const Login: React.FC<AuthPopupProps> = ({ isOpen, onClose }) => {
       // Clean up the URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [user, navigate, onClose]);
+  }, []); // Remove dependencies to run only once
 
   const validateForm = () => {
     const errors: {[key: string]: string} = {};
@@ -102,21 +111,20 @@ const Login: React.FC<AuthPopupProps> = ({ isOpen, onClose }) => {
     setError(null);
 
     try {
-      const result = await supabaseHelpers.signIn(email, password);
-      if (result.data?.user) {
-        const supabaseUser = {
-          id: result.data.user.id,
-          email: result.data.user.email || null,
-        };
-        await login(supabaseUser);
-        setSuccess('Login successful!');
-        setTimeout(() => {
-          onClose();
-          clearForm();
-        }, 1000);
-      } else if (result.error) {
-        setError(result.error.message);
-      }
+     const result = await supabaseHelpers.signIn(email, password);
+
+if (result.data?.user) {
+  await login(result.data.user);   // works now ✅
+  setSuccess('Login successful!');
+  setTimeout(() => {
+    onClose();
+    clearForm();
+    navigate('/');   // redirect to home/dashboard
+  }, 1000);
+} else if (result.error) {
+  setError(result.error.message);
+}
+
     } catch (error: unknown) {
       console.error('Login error:', error);
       setError((error as Error).message || 'Login failed. Please try again.');
@@ -134,9 +142,10 @@ const Login: React.FC<AuthPopupProps> = ({ isOpen, onClose }) => {
     setError(null);
 
     try {
-      const result = await supabaseHelpers.signUp(email, password, {
-        display_name: displayName,
-      });
+const result = await supabaseHelpers.signUp(email, password, {
+  display_name: displayName
+});
+
       
       if (result.data?.user) {
         setSuccess('Account created successfully! Please check your email to verify your account.');
@@ -197,20 +206,6 @@ const Login: React.FC<AuthPopupProps> = ({ isOpen, onClose }) => {
       setError('Failed to send password reset email. Please try again.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await supabaseHelpers.signOut();
-      setSuccess('Logged out successfully!');
-      setTimeout(() => {
-        onClose();
-        clearForm();
-      }, 1000);
-    } catch (error: unknown) {
-      console.error('Logout error:', error);
-      setError('Logout failed. Please try again.');
     }
   };
 

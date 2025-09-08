@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { LanguageProvider } from './contexts/LanguageContext';
+import { LanguageProvider } from './contexts/LanguageContext.jsx';
 import { SpeechSettingsProvider } from './contexts/SpeechSettingsContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -18,9 +18,15 @@ import Chatbot from './pages/Chatbot';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import About from './pages/About';
+import { initializeDatabase } from './lib/dbInit';
 import Articles from './pages/Articles';
 import NotFound from './pages/NotFound';
 import AuthCallback from './pages/AuthCallback';
+import MLAnalysis from './components/MLAnalysis';
+import RealTimeMonitoring from './components/RealTimeMonitoring';
+import SpeechPatternAnalysis from './components/SpeechPatternAnalysis';
+
+console.log('App component loading...');
 
 // Create a component to conditionally render login popup
 function ConditionalLoginPopup({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
@@ -38,6 +44,9 @@ function App() {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
 
   useEffect(() => {
+    // Initialize database
+    initializeDatabase();
+    
     // Show login popup after 1 minute, only once per session
     const hasShownPopup = sessionStorage.getItem('loginPopupShown');
     
@@ -67,6 +76,9 @@ function App() {
                   <Route path="/daily" element={<Daily />} />
                   <Route path="/community" element={<Community />} />
                   <Route path="/assessment" element={<Assessment />} />
+                  <Route path="/ml-analysis" element={<MLAnalysis />} />
+                  <Route path="/real-time-monitoring" element={<RealTimeMonitoring />} />
+                  <Route path="/speech-analysis" element={<SpeechPatternAnalysis />} />
                   <Route path="/chatbot" element={<Chatbot />} />
                   <Route path="/login" element={<Login isOpen={true} onClose={() => setIsLoginOpen(false)} />} />
                   <Route path="/auth/callback" element={<AuthCallback />} />

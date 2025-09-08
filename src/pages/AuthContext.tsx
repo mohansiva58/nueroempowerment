@@ -1,14 +1,10 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
-
-interface SupabaseUser {
-  id: string;
-  email: string | null;
-}
+import { User } from '@supabase/supabase-js';
 
 interface AuthContextType {
-  user: SupabaseUser | null;
-  login: (user: SupabaseUser) => void;
+  user: User | null;
+  login: (user: User) => void;
   logout: () => void;
 }
 
@@ -16,10 +12,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [user, setUser] = useState<User | null>(null);
 
 
-  const login = (user: SupabaseUser) => {
+  const login = (user: User) => {
     setUser(user);
   };
 
@@ -32,7 +28,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const getSession = async () => {
       const { data } = await supabase.auth.getSession();
       if (data.session?.user) {
-        setUser({ id: data.session.user.id, email: data.session.user.email });
+        setUser(data.session.user);
       } else {
         setUser(null);
       }
@@ -40,7 +36,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     getSession();
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        setUser({ id: session.user.id, email: session.user.email });
+        setUser(session.user);
       } else {
         setUser(null);
       }

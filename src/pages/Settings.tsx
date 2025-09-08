@@ -1,7 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { Type, Eye, Bell, Lock, Volume2, Globe, Palette, Save, Mic } from 'lucide-react';
-
 
 interface SettingsState {
   fontSize: 'small' | 'medium' | 'large';
@@ -10,27 +8,22 @@ interface SettingsState {
   highContrast: boolean;
   soundEnabled: boolean;
   textToSpeech: boolean;
-  language: 'en' | 'es' | 'fr' | 'de'; // Kept for UI, but not tied to translations
+  language: 'en' | 'es' | 'fr' | 'de';
   profileVisibility: 'public' | 'private' | 'friends';
   primaryColor: string;
 }
 
 const Settings = () => {
-  
-  const [settings, setSettings] = useState<SettingsState>(() => {
-    // Load settings from localStorage or use defaults
-    const savedSettings = localStorage.getItem('settings');
-    return savedSettings ? JSON.parse(savedSettings) : {
-      fontSize: 'medium',
-      reduceMotion: false,
-      notifications: true,
-      highContrast: false,
-      soundEnabled: true,
-      textToSpeech: false,
-      language: 'en',
-      profileVisibility: 'public',
-      primaryColor: '#4F46E5', // Default indigo
-    };
+  const [settings, setSettings] = useState<SettingsState>({
+    fontSize: 'medium',
+    reduceMotion: false,
+    notifications: true,
+    highContrast: false,
+    soundEnabled: true,
+    textToSpeech: false,
+    language: 'en',
+    profileVisibility: 'public',
+    primaryColor: '#4F46E5',
   });
 
   useEffect(() => {
@@ -54,39 +47,54 @@ const Settings = () => {
   };
 
   const saveSettings = () => {
-    localStorage.setItem('settings', JSON.stringify(settings));
     if (settings.soundEnabled) {
-      new Audio('https://www.soundjay.com/buttons/beep-01a.mp3').play().catch(() => {});
+      // Create a simple beep sound using Web Audio API
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 800;
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.1);
     }
+    
     if (settings.textToSpeech) {
       const utterance = new SpeechSynthesisUtterance('Settings saved!');
-      utterance.lang = settings.language; // Still uses selected language for speech
+      utterance.lang = settings.language;
       speechSynthesis.speak(utterance);
     }
-    alert("Settings saved!");
+    
+    // Show a temporary success message
+    const successDiv = document.createElement('div');
+    successDiv.textContent = 'Settings saved!';
+    successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+    document.body.appendChild(successDiv);
+    
+    setTimeout(() => {
+      document.body.removeChild(successDiv);
+    }, 3000);
   };
 
   return (
     <div className="max-w-5xl mx-auto p-6 sm:p-8 space-y-8 bg-gradient-to-br from-gray-100 to-gray-200 min-h-screen">
-      <motion.h1
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-4xl font-extrabold text-gray-900 tracking-tight"
-      >
-        {"Settings"}
-      </motion.h1>
+      <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">
+        Settings
+      </h1>
 
       <div className="grid gap-6 sm:grid-cols-2">
         {/* Display Preferences */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          whileHover={{ scale: 1.02 }}
-          className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-shadow"
-        >
+        <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
           <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
             <Palette className="h-6 w-6 mr-2 text-indigo-600" />
-            {"Display Preferences"}
+            Display Preferences
           </h2>
           <div className="space-y-6">
             {/* Font Size */}
@@ -94,8 +102,8 @@ const Settings = () => {
               <div className="flex items-center space-x-3">
                 <Type className="h-5 w-5 text-indigo-600" />
                 <div>
-                  <p className="font-medium text-gray-800">{"Font Size"}</p>
-                  <p className="text-sm text-gray-600">{"Adjust text size"}</p>
+                  <p className="font-medium text-gray-800">Font Size</p>
+                  <p className="text-sm text-gray-600">Adjust text size</p>
                 </div>
               </div>
               <select
@@ -103,9 +111,9 @@ const Settings = () => {
                 onChange={(e) => updateSetting('fontSize', e.target.value as 'small' | 'medium' | 'large')}
                 className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-800 focus:ring-2 focus:ring-indigo-500 transition-all"
               >
-                <option value="small">{"Small"}</option>
-                <option value="medium">{"Medium"}</option>
-                <option value="large">{"Large"}</option>
+                <option value="small">Small</option>
+                <option value="medium">Medium</option>
+                <option value="large">Large</option>
               </select>
             </div>
 
@@ -114,8 +122,8 @@ const Settings = () => {
               <div className="flex items-center space-x-3">
                 <Eye className="h-5 w-5 text-indigo-600" />
                 <div>
-                  <p className="font-medium text-gray-800">{"Reduce Motion"}</p>
-                  <p className="text-sm text-gray-600">{"Minimize animations"}</p>
+                  <p className="font-medium text-gray-800">Reduce Motion</p>
+                  <p className="text-sm text-gray-600">Minimize animations</p>
                 </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -136,8 +144,8 @@ const Settings = () => {
               <div className="flex items-center space-x-3">
                 <Palette className="h-5 w-5 text-indigo-600" />
                 <div>
-                  <p className="font-medium text-gray-800">{"High Contrast"}</p>
-                  <p className="text-sm text-gray-600">{"Enhance visibility"}</p>
+                  <p className="font-medium text-gray-800">High Contrast</p>
+                  <p className="text-sm text-gray-600">Enhance visibility</p>
                 </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -158,8 +166,8 @@ const Settings = () => {
               <div className="flex items-center space-x-3">
                 <Palette className="h-5 w-5 text-indigo-600" />
                 <div>
-                  <p className="font-medium text-gray-800">{"Primary Color"}</p>
-                  <p className="text-sm text-gray-600">{"Customize accent color"}</p>
+                  <p className="font-medium text-gray-800">Primary Color</p>
+                  <p className="text-sm text-gray-600">Customize accent color</p>
                 </div>
               </div>
               <input
@@ -170,19 +178,13 @@ const Settings = () => {
               />
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Notifications & Accessibility */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          whileHover={{ scale: 1.02 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-shadow"
-        >
+        <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
           <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
             <Bell className="h-6 w-6 mr-2 text-indigo-600" />
-            {"Notifications & Accessibility"}
+            Notifications & Accessibility
           </h2>
           <div className="space-y-6">
             {/* Daily Reminders */}
@@ -190,8 +192,8 @@ const Settings = () => {
               <div className="flex items-center space-x-3">
                 <Bell className="h-5 w-5 text-indigo-600" />
                 <div>
-                  <p className="font-medium text-gray-800">{"Daily Reminders"}</p>
-                  <p className="text-sm text-gray-600">{"Activity notifications"}</p>
+                  <p className="font-medium text-gray-800">Daily Reminders</p>
+                  <p className="text-sm text-gray-600">Activity notifications</p>
                 </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -212,8 +214,8 @@ const Settings = () => {
               <div className="flex items-center space-x-3">
                 <Volume2 className="h-5 w-5 text-indigo-600" />
                 <div>
-                  <p className="font-medium text-gray-800">{"Sound Effects"}</p>
-                  <p className="text-sm text-gray-600">{"Notification sounds"}</p>
+                  <p className="font-medium text-gray-800">Sound Effects</p>
+                  <p className="text-sm text-gray-600">Notification sounds</p>
                 </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -234,8 +236,8 @@ const Settings = () => {
               <div className="flex items-center space-x-3">
                 <Mic className="h-5 w-5 text-indigo-600" />
                 <div>
-                  <p className="font-medium text-gray-800">{"Text-to-Speech"}</p>
-                  <p className="text-sm text-gray-600">{"Enable audio for text"}</p>
+                  <p className="font-medium text-gray-800">Text-to-Speech</p>
+                  <p className="text-sm text-gray-600">Enable audio for text</p>
                 </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -251,19 +253,13 @@ const Settings = () => {
               </label>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Privacy & Language */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          whileHover={{ scale: 1.02 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-shadow sm:col-span-2"
-        >
+        <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-shadow sm:col-span-2">
           <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
             <Lock className="h-6 w-6 mr-2 text-indigo-600" />
-            {"Privacy & Language"}
+            Privacy & Language
           </h2>
           <div className="space-y-6">
             {/* Profile Visibility */}
@@ -271,8 +267,8 @@ const Settings = () => {
               <div className="flex items-center space-x-3">
                 <Lock className="h-5 w-5 text-indigo-600" />
                 <div>
-                  <p className="font-medium text-gray-800">{"Profile Visibility"}</p>
-                  <p className="text-sm text-gray-600">{"Who can see your profile"}</p>
+                  <p className="font-medium text-gray-800">Profile Visibility</p>
+                  <p className="text-sm text-gray-600">Who can see your profile</p>
                 </div>
               </div>
               <select
@@ -280,9 +276,9 @@ const Settings = () => {
                 onChange={(e) => updateSetting('profileVisibility', e.target.value as 'public' | 'private' | 'friends')}
                 className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-800 focus:ring-2 focus:ring-indigo-500 transition-all"
               >
-                <option value="public">{"Public"}</option>
-                <option value="private">{"Private"}</option>
-                <option value="friends">{"Friends Only"}</option>
+                <option value="public">Public</option>
+                <option value="private">Private</option>
+                <option value="friends">Friends Only</option>
               </select>
             </div>
 
@@ -291,8 +287,8 @@ const Settings = () => {
               <div className="flex items-center space-x-3">
                 <Globe className="h-5 w-5 text-indigo-600" />
                 <div>
-                  <p className="font-medium text-gray-800">{Language}</p>
-                  <p className="text-sm text-gray-600">{"Preferred Language"}</p>
+                  <p className="font-medium text-gray-800">Language</p>
+                  <p className="text-sm text-gray-600">Preferred Language</p>
                 </div>
               </div>
               <select
@@ -300,35 +296,29 @@ const Settings = () => {
                 onChange={(e) => updateSetting('language', e.target.value as 'en' | 'es' | 'fr' | 'de')}
                 className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-800 focus:ring-2 focus:ring-indigo-500 transition-all"
               >
-                <option value="en">{"English"}</option>
-                <option value="es">{"Spanish"}</option>
-                <option value="fr">{"French"}</option>
-                <option value="de">{"German"}</option>
+                <option value="en">English</option>
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
               </select>
             </div>
           </div>
-        </motion.div>
+        </div>
       </div>
 
       {/* Save Button */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="flex justify-end"
-      >
+      <div className="flex justify-end">
         <button
           onClick={saveSettings}
           className="flex items-center px-6 py-3 text-white rounded-lg hover:bg-opacity-90 focus:ring-4 focus:ring-indigo-300 transition-all"
           style={{ backgroundColor: settings.primaryColor }}
         >
           <Save className="h-5 w-5 mr-2" />
-          {"Save Settings"}
+          Save Settings
         </button>
-      </motion.div>
+      </div>
     </div>
   );
 };
 
 export default Settings;
-
