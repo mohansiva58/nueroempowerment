@@ -5,6 +5,7 @@ import { SpeechText } from '../components/speach';
 import { FormattedMessage } from 'react-intl';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../pages/AuthContext';
+import { useSpeechSettings } from '../contexts/SpeechSettingsContext';
 import Login from '../pages/Login';
 
 const Navbar = () => {
@@ -15,6 +16,7 @@ const Navbar = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
   const { currentLanguage, changeLanguage } = useLanguage();
+  const { isSpeechEnabled, toggleSpeech } = useSpeechSettings();
 
   const handleLogout = useCallback(() => {
     logout();
@@ -35,19 +37,19 @@ const Navbar = () => {
     { nameKey: "navbar.learning", href: '/learning', icon: BookOpen },
     { nameKey: "navbar.games", href: '/games', icon: Gamepad2 },
     { nameKey: "navbar.daily", href: '/daily', icon: Calendar },
-    { nameKey: "navbar.community", href: '/community', icon: Users },
+    // { nameKey: "navbar.community", href: '/community', icon: Users },
     { nameKey: "navbar.assessment", href: '/assessment', icon: Brain },
-    { nameKey: "navbar.ml_analysis", href: '/ml-analysis', icon: Brain },
+    { nameKey: "navbar.about", href: '/about', icon: FileText },
   ];
 
   const profileMenu = useMemo(() => [
-    { nameKey: "navbar.ml_analysis", href: '/ml-analysis', icon: Brain },
-    { nameKey: "navbar.real_time_monitoring", href: '/real-time-monitoring', icon: Activity },
-    { nameKey: "navbar.speech_analysis", href: '/speech-analysis', icon: Mic },
+    // { nameKey: "navbar.ml_analysis", href: '/ml-analysis', icon: Brain },
+    // { nameKey: "navbar.real_time_monitoring", href: '/real-time-monitoring', icon: Activity },
+    // { nameKey: "navbar.speech_analysis", href: '/speech-analysis', icon: Mic },
     { nameKey: "navbar.settings", href: '/settings', icon: Settings },
     { nameKey: "navbar.blog", href: '/blog', icon: FileText },
     { nameKey: "navbar.articles", href: '/articles', icon: MessageSquare },
-    { nameKey: "navbar.about", href: '/about', icon: FileText },
+    // { nameKey: "navbar.about", href: '/about', icon: FileText },
     { nameKey: "navbar.logout", href: '#', icon: LogOut, onClick: handleLogout, hide: !user },
   ], [handleLogout, user]);
 
@@ -146,7 +148,7 @@ const Navbar = () => {
                     }`}
                   >
                     <Icon className="h-4 w-4" />
-                    <SpeechText>
+                    <SpeechText enableVisualFeedback={false}>
                       <span>
                         <FormattedMessage id={item.nameKey} defaultMessage={item.nameKey.split('.')[1]} />
                       </span>
@@ -169,7 +171,19 @@ const Navbar = () => {
                 <option value="hi">हिंदी</option>
               </select>
 
-              {/* Speech Toggle Button - REMOVED per user request */}
+              {/* Speech Toggle Button */}
+              <button
+                onClick={toggleSpeech}
+                aria-pressed={!isSpeechEnabled ? 'false' : 'true'}
+                title={isSpeechEnabled ? 'Disable speech' : 'Enable speech'}
+                className="ml-2 p-2 rounded-md bg-gray-800 hover:bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+              >
+                {isSpeechEnabled ? (
+                  <Mic className="h-4 w-4" />
+                ) : (
+                  <LogOut className="h-4 w-4 transform rotate-90" />
+                )}
+              </button>
 
               {/* Profile Dropdown */}
               <div className="relative">
@@ -290,7 +304,7 @@ const Navbar = () => {
                     }}
                   >
                     <Icon className="h-5 w-5" />
-                    <SpeechText>
+                    <SpeechText enableVisualFeedback={false}>
                       <span>
                         <FormattedMessage id={item.nameKey} defaultMessage={item.nameKey.split('.')[1]} />
                       </span>
@@ -323,7 +337,7 @@ const Navbar = () => {
                             />
                           ) : (
                             <div className="flex items-center justify-center w-full h-full bg-gray-700 rounded-full">
-                              <SpeechText>
+                              <SpeechText enableVisualFeedback={false}>
                                 <span className="text-sm font-semibold">{getUserInitials()}</span>
                               </SpeechText>
                             </div>
@@ -364,10 +378,10 @@ const Navbar = () => {
                                     setIsOpen(false); // Also close mobile menu
                                   }
                                 }}
-                                className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-200 hover:bg-gray-800 hover:text-white transition-colors duration-150"
+                                className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-200 hover:bg-gray-800"
                               >
                                 <Icon className="h-4 w-4 text-gray-300" />
-                                <SpeechText>
+                                <SpeechText enableVisualFeedback={false}>
                                   <span>
                                     <FormattedMessage id={item.nameKey} defaultMessage={item.nameKey.split('.')[1]} />
                                   </span>

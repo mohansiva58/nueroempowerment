@@ -68,22 +68,45 @@ const MLAnalysis: React.FC = () => {
     setError(null);
     
     try {
-      const response = await fetch('http://localhost:8000/simple-analysis', {
+      // Read API base URL from env; fall back to localhost:8000 for development
+      const apiBase = (import.meta.env.VITE_ML_API_URL as string) || 'http://localhost:8000';
+      const url = apiBase.replace(/\/$/, '') + '/simple-analysis';
+
+      // Abort fetch after timeout to avoid hanging
+      const controller = new AbortController();
+      const timeoutMs = 10000; // 10s timeout
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
+        signal: controller.signal
       });
-      
+
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        // capture response body when possible for better error messages
+        let bodyText = '';
+  try { bodyText = await response.text(); } catch { /* ignore response body */ }
+        throw new Error(`HTTP ${response.status}: ${response.statusText} ${bodyText ? '- ' + bodyText : ''}`);
       }
-      
+
       const data = await response.json();
       setResult(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Analysis failed');
+    } catch (err: unknown) {
+      // Provide clearer guidance for typical network errors
+      if (err && typeof err === 'object' && 'name' in err && (err as any).name === 'AbortError') {
+        setError('Request timed out after 10 seconds. Is the ML server running?');
+      } else if (err instanceof TypeError && /failed to fetch/i.test(err.message)) {
+        const apiBase = (import.meta.env.VITE_ML_API_URL as string) || 'http://localhost:8000';
+        setError(`Cannot reach ML server at ${apiBase}. Check that the ML API process is running and that CORS allows requests from this origin.`);
+      } else {
+        setError(err instanceof Error ? err.message : 'Analysis failed');
+      }
       console.error('Analysis error:', err);
     } finally {
       setLoading(false);

@@ -35,7 +35,7 @@ const RealTimeMonitoring: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  useEffect(() => {
+  useEffect(() => {Q
     checkPermissions();
     return () => {
       stopMonitoring();

@@ -69,7 +69,7 @@ const categoryContent: Record<string, { descriptionKey: string; resources: Resou
   "Cognitive": {
     descriptionKey: "learning.category_desc.cognitive",
     resources: [
-      { titleKey: "learning.resource3.title", type: "Article", link: "https://www.additudemag.com/adhd-coping-skills/", descriptionKey: "learning.resource3.desc" },
+      { titleKey: "learning.resource3.title", type: "Article", link: "https://www.nimh.nih.gov/health/publications/attention-deficit-hyperactivity-disorder-what-you-need-to-know", descriptionKey: "learning.resource3.desc" },
       { titleKey: "learning.resource4.title", type: "Video", link: "https://www.youtube.com/watch?v=hFL6qRIJZ_Y", descriptionKey: "learning.resource4.desc" },
       { titleKey: "learning.resource5.title", type: "Tip", descriptionKey: "learning.resource5.desc" },
     ],
@@ -479,66 +479,17 @@ const Learning: React.FC = () => {
             <motion.div variants={containerVariants} initial="hidden" animate="visible">
               <motion.h2 variants={cardVariants} className="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
                 <SpeechText>
-                  <FormattedMessage id="learning.my_events" defaultMessage="My Events" />
+                  {/* <FormattedMessage id="learning.my_events" defaultMessage="My Events" /> */}
                 </SpeechText>
-                <span className="ml-2">ðŸŽ‰</span>
+                {/* <span className="ml-2">ðŸŽ‰</span> */}
               </motion.h2>
-              <div className="space-y-4">
-                <AnimatePresence>
-                  {events.map((event, index) => (
-                    <motion.div
-                      key={index}
-                      variants={cardVariants}
-                      initial="hidden"
-                      animate="visible"
-                      exit={{ opacity: 0, x: 20 }}
-                      whileHover="hover"
-                      className={`rounded-xl shadow-md p-4 ${event.type === "Webinar" ? "bg-blue-50" : event.type === "Lesson" ? "bg-purple-50" : "bg-yellow-50"}`}
-                    >
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-semibold text-gray-700">
-                          <SpeechText>
-                            {event.type === "Webinar" && <FormattedMessage id="learning.event_type.webinar" defaultMessage="Webinar" />}
-                            {event.type === "Lesson" && <FormattedMessage id="learning.event_type.lesson" defaultMessage="Lesson" />}
-                            {event.type === "Task" && <FormattedMessage id="learning.event_type.task" defaultMessage="Task" />}
-                          </SpeechText>
-                        </span>
-                        <span className="text-sm text-gray-600">
-                          <SpeechText>{event.date}</SpeechText>
-                        </span>
-                      </div>
-                      <h3 className="text-lg font-semibold text-gray-800">
-                        <SpeechText>
-                          <FormattedMessage id={event.titleKey} defaultMessage={event.titleKey} />
-                        </SpeechText>
-                      </h3>
-                      {event.descriptionKey && (
-                        <p className="text-gray-600 text-sm mt-1">
-                          <SpeechText>
-                            <FormattedMessage id={event.descriptionKey} defaultMessage={event.descriptionKey} />
-                          </SpeechText>
-                        </p>
-                      )}
-                      {event.time && (
-                        <motion.button variants={buttonVariants} whileHover="hover" whileTap="tap" className="mt-2 px-4 py-1 bg-gray-200 text-gray-800 rounded-lg text-sm">
-                          <SpeechText>
-                            <FormattedMessage 
-                              id="learning.start_at" 
-                              defaultMessage="Start at" 
-                            /> {event.time}
-                          </SpeechText>
-                        </motion.button>
-                      )}
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
+             
 
               <motion.h2 variants={cardVariants} className="text-2xl font-semibold text-gray-800 mt-8 mb-6 flex items-center">
                 <SpeechText>
                   <FormattedMessage id="learning.resources" defaultMessage="Resources" />
                 </SpeechText>
-                <span className="ml-2">ðŸ“š</span>
+                {/* <span className="ml-2">ðŸ“š</span> */}
               </motion.h2>
               <div className="space-y-4">
                 <AnimatePresence>
