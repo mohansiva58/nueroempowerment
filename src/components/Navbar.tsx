@@ -131,6 +131,26 @@ const Navbar = () => {
             <div className="hidden md:flex space-x-4 items-center">
               {navigation.map((item) => {
                 const Icon = item.icon;
+                // If Daily and user is not logged in, open login modal instead of navigating
+                if (item.href === '/daily' && !user) {
+                  return (
+                    <button
+                      key={item.nameKey}
+                      onClick={() => handleLoginClick()}
+                      className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium ${
+                        location.pathname === item.href ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-900'
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <SpeechText>
+                        <span>
+                          <FormattedMessage id={item.nameKey} defaultMessage={item.nameKey.split('.')[1]} />
+                        </span>
+                      </SpeechText>
+                    </button>
+                  );
+                }
+
                 return (
                   <Link
                     key={item.nameKey}
@@ -267,6 +287,26 @@ const Navbar = () => {
             <div className="md:hidden pb-4">
               {navigation.map((item) => {
                 const Icon = item.icon;
+                // Mobile: if Daily and user not logged in, open login modal instead of navigating
+                if (item.href === '/daily' && !user) {
+                  return (
+                    <button
+                      key={item.nameKey}
+                      onClick={() => { setIsOpen(false); handleLoginClick(); }}
+                      className={`flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium ${
+                        location.pathname === item.href ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-800'
+                      }`}
+                    >
+                      <Icon className="h-5 w-5" />
+                      <SpeechText>
+                        <span>
+                          <FormattedMessage id={item.nameKey} defaultMessage={item.nameKey.split('.')[1]} />
+                        </span>
+                      </SpeechText>
+                    </button>
+                  );
+                }
+
                 return (
                   <Link
                     key={item.nameKey}

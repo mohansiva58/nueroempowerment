@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, CheckCircle, Clock, BookOpen, PlusCircle, Trash2, Edit2, Target, Star, Trophy, Flame, TrendingUp, ChevronDown } from 'lucide-react';
 import { SpeechText } from '../components/speach'; // Fixed typo
@@ -18,6 +19,7 @@ interface Task {
 }
 
 const Daily: React.FC = () => {
+  const navigate = useNavigate();
   const intl = useIntl();
   const [completedTasks, setCompletedTasks] = useState<string[]>([]);
   const [dailyTasks, setDailyTasks] = useState<Task[]>([]);
@@ -35,6 +37,7 @@ const Daily: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<string>('All'); // New filter for completion status
   const [editTask, setEditTask] = useState<Task | null>(null);
   const { user } = useAuth();
+  const [reminderSent, setReminderSent] = useState(false);
 
   const fetchTasks = useCallback(async () => {
     if (!user) return;
@@ -55,8 +58,39 @@ const Daily: React.FC = () => {
   }, [user]);
 
   useEffect(() => {
+    // Login check and redirect
+    if (!user) {
+      navigate('/login');
+      return;
+    }
     fetchTasks();
-  }, [fetchTasks]);
+  }, [fetchTasks, user, navigate]);
+  // Send a reminder email to the user's login email on first entry
+  useEffect(() => {
+    if (user && user.email && !reminderSent) {
+      // Send a generic daily page reminder
+      const formData = new FormData();
+      formData.append('access_key', 'b9f745ad-a036-4c43-9fba-81838d15f871');
+      formData.append('subject', `Daily Page Reminder`);
+      formData.append('message', `
+        🔔 Daily Page Reminder!
+        You have opened the Daily Activities page on NueroHub.
+        Stay productive and check your tasks!
+        Best regards,
+        NueroHub
+      `);
+      formData.append('from_name', 'Nuerohub Reminder');
+      formData.append('email', user.email);
+      fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        body: formData
+      }).then(() => {
+        setReminderSent(true);
+      }).catch(() => {
+        setReminderSent(true);
+      });
+    }
+  }, [user, reminderSent]);
 
   const toggleTask = async (taskId: string) => {
     if (!user) {
@@ -190,7 +224,7 @@ const Daily: React.FC = () => {
 
     try {
       const formData = new FormData();
-      formData.append('access_key', '8b668786-3689-4838-9945-8123244ba831');
+      formData.append('access_key', 'b9f745ad-a036-4c43-9fba-81838d15f871');
       formData.append('subject', `Task Reminder: ${task.title}`);
       formData.append('message', `
         🔔 Task Reminder Alert!
